@@ -1,5 +1,6 @@
 'use client';
 
+export const dynamic = "force-static";
 import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';

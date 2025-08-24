@@ -43,11 +43,18 @@ const methodOptions = [
   { value: "upay", label: "Upay" },
 ]
 
-export default function PayoutTable({ data }: { data: Payout[] }) {
+interface ApiResponse {
+  status: boolean;
+  count: number;
+  data: Payout[];
+}
+
+export default function PayoutTable({payoutListPromise}: {payoutListPromise: Promise<ApiResponse>}) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-console.log(data);
+
+  const{data} = React.use(payoutListPromise);
 
   const table = useReactTable({
     data,

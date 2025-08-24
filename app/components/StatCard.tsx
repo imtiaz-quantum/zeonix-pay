@@ -34,10 +34,10 @@ export const StatCard = ({
   return (
     <Card className={`w-full rounded-xl ${bgColor} border-none shadow-sm`}>
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-        <div className="text-sm font-medium text-gray-800">{title}</div>
-        <div className={`p-2 rounded-full ${iconBg} ${iconColor}`}>
+        <h1 className="text-sm font-medium text-gray-800">{title}</h1>
+        <span className={`p-2 rounded-full ${iconBg} ${iconColor}`}>
           {icon}
-        </div>
+        </span>
       </CardHeader>
       <CardContent className="space-y-1">
         <div className="text-2xl font-bold text-gray-900">BDT{amount}</div>

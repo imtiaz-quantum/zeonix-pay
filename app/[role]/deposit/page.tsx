@@ -45,7 +45,6 @@
 // import { CalendarIcon } from "lucide-react"
 // import { format, parse } from "date-fns"
 
-
 // type Transaction = {
 //   storeId: string;
 //   ipAddress: string;
@@ -59,8 +58,6 @@
 //   previousBalance: number;
 //   currentBalance: number;
 // };
-
-
 
 // const transactions: Transaction[] = [
 //   {
@@ -169,8 +166,6 @@
 //   },
 // ];
 
-
-
 // const statuses = [
 //   { value: "success", label: "Success" },
 //   { value: "pending", label: "Pending" },
@@ -185,8 +180,6 @@
 //   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
 //   const [globalFilter, setGlobalFilter] = React.useState<string>("")
 //   const [selectedDates, setSelectedDates] = React.useState<Date[] | undefined>(undefined)
-
-
 
 //   const table = useReactTable({
 //     data,
@@ -212,8 +205,6 @@
 //       )
 //     },
 //   })
-
-
 
 //   React.useEffect(() => {
 //     table.getColumn("dateTime")?.setFilterValue(selectedDates && selectedDates.length ? selectedDates : undefined)
@@ -381,39 +372,32 @@
 //   )
 // }
 
-
-
-
-import * as React from "react"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import { getDepositList } from "@/app/lib/api/merchant/deposite";
 import DepositTable from "@/app/components/merchant/deposit/DepositTable";
-import { getPayoutList } from "@/app/lib/api/merchant/payout";
+import { Suspense } from "react";
+import DepositTableSkeleton from "@/app/components/skeletons/DepositTableSkeleton";
 
-
-export default async function Page() {
-
-   const res = await getDepositList()
-   const payout = await getPayoutList()
-console.log(payout);
+export default function Page() {
+  const depositListPromise = getDepositList();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">Recent Transactions</CardTitle>
-        <CardDescription>
-          A list of recent transactions.
-        </CardDescription>
+        <CardDescription>A list of recent transactions.</CardDescription>
       </CardHeader>
       <CardContent>
-        <DepositTable data={res?.data}/>
+        <Suspense fallback={<DepositTableSkeleton/>}>
+          <DepositTable depositListPromise={depositListPromise} />
+        </Suspense>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -331,35 +331,34 @@ export default function Page() {
 }
  */
 
-
-import * as React from "react"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import { getPayoutList } from "@/app/lib/api/merchant/payout";
 import PayoutTable from "@/app/components/PayoutTable";
-
+import { Suspense } from "react";
+import DepositTableSkeleton from "@/app/components/skeletons/DepositTableSkeleton";
 
 export default async function Page() {
-
-   const payout = await getPayoutList()
-   console.log(payout);
+  const payout = await getPayoutList();
+  const payoutListPromise = getPayoutList();
+  console.log(payout);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">Recent Transactions</CardTitle>
-        <CardDescription>
-          A list of recent transactions.
-        </CardDescription>
+        <CardDescription>A list of recent transactions.</CardDescription>
       </CardHeader>
       <CardContent>
-        <PayoutTable data={payout?.data}/>
+        <Suspense fallback={<DepositTableSkeleton/>}>
+          <PayoutTable payoutListPromise={payoutListPromise} />
+        </Suspense>
       </CardContent>
     </Card>
-  )
+  );
 }

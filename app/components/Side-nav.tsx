@@ -163,13 +163,13 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
       {!collapsed && isMobile && (
         <div
           onClick={toggleSidebar}
-          className="w-full h-screen inset-0 z-30 bg-black opacity-70 fixed lg:hidden"
+          className="w-full h-screen inset-0 z-40 bg-black opacity-70 fixed lg:hidden"
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed h-screen z-40 px-2 bg-white shadow-md transition-all duration-300 ease-in-out
+        className={`fixed h-screen z-50 px-2 bg-white shadow-md transition-all duration-300 ease-in-out
         ${collapsed ? "w-20" : "w-72 sm:w-80 lg:w-68"}
         ${isMobile ? (collapsed ? "-translate-x-full" : "translate-x-0") : ""}`}
       >

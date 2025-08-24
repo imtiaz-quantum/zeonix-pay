@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { use } from 'react'
 import {CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +20,15 @@ type Transaction = {
   content_type: number;
 };
 
+interface ApiResponse {
+  status: boolean;
+  count: number;
+  data: Transaction[];
+}
+
 type DynamicTableProps = {
   headers: string[];
-  data: Transaction[];
+  walletTrnxPromise: Promise<ApiResponse>;
 };
 
 const TZ = "Asia/Dhaka";
@@ -67,10 +73,14 @@ function statusClasses(status: string) {
   return "bg-red-600 text-white";
 }
 
-const RecentTransaction: React.FC<DynamicTableProps> = ({ headers, data }) => {
+const RecentTransaction: React.FC<DynamicTableProps> = ({ headers, walletTrnxPromise }) => {
+
+  const {data} = use(walletTrnxPromise);
+  console.log(data);
+  
   return (
 
-    <CardContent>
+    <CardContent className='px-3 md:px-4'>
       <div className="rounded-lg border bg-white shadow-md overflow-x-auto">
         <Table className="min-w-full text-sm">
           <TableHeader className="bg-customViolet sticky top-0 z-10">
@@ -94,12 +104,12 @@ const RecentTransaction: React.FC<DynamicTableProps> = ({ headers, data }) => {
                   key={`${t.trx_uuid}-${idx}`}
                   className={idx % 2 === 0 ? "bg-gray-50 hover:bg-gray-100" : "hover:bg-gray-100"}
                 >
-                  <TableCell className="hidden md:table-cell">{t.id}</TableCell>
-                  <TableCell className="hidden md:table-cell">{t.store_name}</TableCell>
+                  <TableCell className="">{t.id}</TableCell>
+                  <TableCell className="">{t.store_name}</TableCell>
                   <TableCell className="font-medium">{t.trx_id}</TableCell>
-                  <TableCell className="hidden sm:table-cell capitalize">{t.method}</TableCell>
-                  <TableCell className="hidden md:table-cell capitalize">{t.tran_type}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{formatDate(t.created_at)}</TableCell>
+                  <TableCell className="capitalize">{t.method}</TableCell>
+                  <TableCell className=" capitalize">{t.tran_type}</TableCell>
+                  <TableCell className="">{formatDate(t.created_at)}</TableCell>
                   <TableCell>
                     <Badge className={statusClasses(t.status)}>
                       {t.status}

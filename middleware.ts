@@ -1,28 +1,37 @@
-import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import type { NextRequest } from "next/server";
+
+const allowedPaths = ["admin", "merchant", "staff"];
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request });
-  const role = token?.role;
-console.log("token kkkkkkkkkkkkkk: ",role);
-
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/admin') && role !== 'admin') {
-    return NextResponse.redirect(new URL('/login/admin', request.url));
+  if (pathname === '/') {
+    return NextResponse.next();
   }
 
-  if (pathname.startsWith('/merchant') && role !== 'merchant') {
-    return NextResponse.redirect(new URL('/login/merchant', request.url));
+  // Get the first path segment - the dynamic role
+  const segments = pathname.split("/").filter(Boolean);
+  const routeRole = segments[0];
+
+  // Check if the routeRole is an allowed path
+  if (!allowedPaths.includes(routeRole)) {
+    return NextResponse.rewrite(new URL("/404", request.url));
   }
-  if (pathname.startsWith('/staff') && role !== 'staff') {
-    return NextResponse.redirect(new URL('/login/staff', request.url));
+
+  // Get user's role from token/session
+  const token = await getToken({ req: request });
+  const userRole = token?.role;
+
+  // If user not logged in or role mismatch, redirect to login page
+  if (!userRole || userRole !== routeRole) {
+    return NextResponse.redirect(new URL(`/${userRole?? routeRole}/dashboard`, request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/:path*'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login|server-down|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };

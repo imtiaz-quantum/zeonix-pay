@@ -2,10 +2,11 @@
   "name": "admin-dashborad",
   "version": "0.1.0",
   "private": true,
- "scripts": {
-    "dev": "node server.ts",
+  "scripts": {
+    "dev": "next dev",
     "build": "next build",
-    "start": "NODE_ENV=production node server.ts"
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
