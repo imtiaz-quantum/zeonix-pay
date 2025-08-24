@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Building2, Globe2, Phone, Shield, BadgeDollarSign, Link as LinkIcon, Copy, Check, Edit, Upload, ToggleRight } from "lucide-react";
-import { useState } from "react";
+import {
+    Building2, Globe2, Phone, Shield, BadgeDollarSign, Copy, Check, Edit, Upload, ToggleRight
+} from "lucide-react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -10,10 +12,10 @@ type MerchantData = {
     brand_name: string;
     whatsapp_number: string;
     domain_name: string; // e.g. "https://zenxone.com/"
-    brand_logo: string | null; // URL or base64
+    brand_logo: string | null; // URL or path returned by backend
     status: "Active" | "Inactive" | string;
     is_active: boolean;
-    fees: string; // store the number as string, e.g. "10.00" -> displays as "10%"
+    fees: string; // "10.00" (we display `${fees}%`)
 };
 
 export default function ProfileCard({ data }: { data: MerchantData }) {
@@ -22,8 +24,13 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
     const [newFees, setNewFees] = useState(data.fees);
     const [newStatus, setNewStatus] = useState(data.status);
     const [newLogo, setNewLogo] = useState<File | null>(null);
+
+    // Live preview (local object URL) and persisted path/URL from backend
     const [logoPreview, setLogoPreview] = useState<string | null>(data.brand_logo);
-    const route = useRouter();
+    const [logoRemotePath, setLogoRemotePath] = useState<string | null>(data.brand_logo);
+
+    const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const initials = (form: MerchantData) => {
         const n = (form.brand_name || "BIZ").trim();
@@ -38,31 +45,61 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
             ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
             : "bg-rose-50 text-rose-700 ring-rose-200";
 
+    const openFilePicker = () => fileInputRef.current?.click();
+
+    const onSelectLogo: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+        const f = e.target.files?.[0] ?? null;
+        setNewLogo(f);
+        if (f) setLogoPreview(URL.createObjectURL(f)); // instant local preview
+    };
+
+    // Uploads image file to your API (which forwards to backend)
+    const handleUploadLogo = async () => {
+        if (!newLogo) {
+            toast.error("Please choose a logo first.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("brand_logo", newLogo); // <-- important key name
+
+        try {
+            const res = await fetch("/api/profile/update", {
+                method: "POST",
+                body: formData,  // no Content-Type header
+            });
+
+            const json = await res.json();
+            if (!res.ok) throw new Error(json?.message || "Upload failed");
+
+            toast.success("Logo uploaded!");
+            console.log("Response:", json);
+        } catch (err: any) {
+            toast.error(err.message || "Upload failed");
+        }
+    };
+
+    // Sends only JSON fields to your API (no file)
     const handleEdit = async () => {
-        const updatedData = {
-            merchant: {
-                brand_name: newBrandName,
-                fees: newFees,
-                status: newStatus,
-            },
+        const payload = {
+
+            brand_name: newBrandName,
+            fees: newFees,
+            status: newStatus,
+            // optionally include backend-returned path/URL (if your upstream expects it here)
+            brand_logo: logoRemotePath ?? data.brand_logo ?? null,
+
         };
 
-        // Wrap the fetch call inside toast.promise
         toast.promise(
             fetch("/api/profile/update", {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(updatedData),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
             }).then(async (response) => {
-                if (response.ok) {
-                    setIsEditing(false);
-                    route.refresh(); // Trigger a refresh after updating
-                    return "Profile updated successfully"; // Success message
-                } else {
-                    throw new Error("Failed to update profile"); // Error message
-                }
+                if (!response.ok) throw new Error("Failed to update profile");
+                setIsEditing(false);
+                router.refresh();
             }),
             {
                 loading: "Updating profile...",
@@ -70,30 +107,6 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
                 error: <b>Failed to update profile.</b>,
             }
         );
-    };
-
-    const handleUploadLogo = async () => {
-        if (!newLogo) {
-            console.log("No logo selected");
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append("logo", newLogo);
-        console.log(formData);
-
-        const response = await fetch("/api/profile/update", {
-            method: "PUT",
-            body: formData,
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            setLogoPreview(result.logoPath); // Update with the new logo URL
-            console.log("Logo updated successfully");
-        } else {
-            console.log("Failed to upload logo");
-        }
     };
 
     return (
@@ -120,15 +133,14 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
                         <div className="pb-1">
                             <h1 className="text-xl font-bold text-white">{data.brand_name || "—"}</h1>
                             <div className="mt-1 inline-flex items-center gap-2">
-                                <span
-                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring ${statusPill(data.status)}`}
-                                >
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring ${statusPill(data.status)}`}>
                                     <Shield className="h-3.5 w-3.5" />
                                     {data.status}
                                 </span>
                             </div>
                         </div>
                     </div>
+
                     {/* Header Buttons */}
                     <div className="flex flex-col sm:flex-row gap-2">
                         <button
@@ -137,6 +149,23 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
                         >
                             <Edit className="h-4 w-4" />
                             {isEditing ? "Cancel" : "Edit"}
+                        </button>
+
+                        {/* Hidden file input */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={onSelectLogo}
+                        />
+
+                        <button
+                            onClick={openFilePicker}
+                            className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                            <Upload className="h-4 w-4" />
+                            Choose Logo
                         </button>
                         <button
                             onClick={handleUploadLogo}
@@ -195,7 +224,6 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
                 </div>
             </div>
 
-            {/* Save button to update profile */}
             {isEditing && (
                 <div className="px-6 py-3 mt-4 flex justify-end">
                     <button
@@ -210,6 +238,9 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
     );
 }
 
+/* ------------------------------------------------------------------ */
+/* Helper components (same as your originals)                          */
+/* ------------------------------------------------------------------ */
 function Field({
     icon,
     label,
@@ -259,7 +290,10 @@ function CopyBtn({ text }: { text: string }) {
     };
 
     return (
-        <button onClick={onCopy} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50">
+        <button
+            onClick={onCopy}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
             <span>{copied ? "Copied" : "Copy"}</span>
         </button>

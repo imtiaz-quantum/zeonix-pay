@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
   experimental: {
     useCache: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "192.168.68.130",
+        port: "8000",
+        pathname: "/media/**", // allow all files under /media/
+      },
+    ],
+  },
 };
 
 export default nextConfig;

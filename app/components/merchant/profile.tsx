@@ -1,10 +1,22 @@
-"use client"
+"use client";
 import React, { useMemo, useState } from "react";
-import { Mail, Phone, Shield, User, Copy, Check, Hash, Edit3 } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  Shield,
+  User,
+  Copy,
+  Check,
+  Hash,
+  Edit3,
+  BadgeCheck,
+  X,
+  Save,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
-// Demo data from the prompt. In a real app, pass this as props or fetch from your API.
+
 const demoData = {
   id: 3,
   username: "demo",
@@ -19,9 +31,25 @@ const demoData = {
 
 export type ProfileData = typeof demoData;
 
-function Badge({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+type EditableKeys =
+  | "username"
+  | "first_name"
+  | "last_name"
+  | "email"
+  | "phone_number"
+  | "status"; // role & pid are NOT editable
+
+function Badge({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${className}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${className}`}
+    >
       {children}
     </span>
   );
@@ -35,6 +63,8 @@ function FieldRow({
   isEditable,
   onChange,
   name,
+  placeholder,
+  disabled,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -43,6 +73,8 @@ function FieldRow({
   isEditable?: boolean;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   name: string;
+  placeholder?: string;
+  disabled?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -54,21 +86,26 @@ function FieldRow({
   };
 
   return (
-    <div className="flex items-start justify-between gap-4 py-3">
-      <div className="flex min-w-0 items-start gap-3">
-        <Icon className="mt-0.5 h-5 w-5 shrink-0" />
-        <div className="min-w-0">
+    <div className={`flex items-start justify-between gap-4 py-3`}> 
+      <div className="flex min-w-0 items-start gap-3 w-full">
+        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
+        <div className="min-w-0 flex-1">
           <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
-          <div className="truncate text-base font-medium text-gray-900" title={String(value ?? "—")}>
-            {isEditable ? (
+          <div
+            className="truncate text-base font-medium text-gray-900"
+            title={String(value ?? "—")}
+          >
+            {isEditable && !disabled ? (
               <input
                 name={name}
-                className="text-sm text-slate-800 outline-none ring-2 ring-transparent focus:ring-violet-200 w-full"
+                className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-2 ring-transparent transition focus:border-violet-400 focus:ring-violet-200 disabled:cursor-not-allowed disabled:bg-gray-50"
                 value={String(value ?? "")}
                 onChange={onChange}
+                placeholder={placeholder}
+                disabled={disabled}
               />
             ) : (
-              value ?? "—"
+              <span className="text-slate-800">{value ?? "—"}</span>
             )}
           </div>
         </div>
@@ -76,7 +113,7 @@ function FieldRow({
       {onCopy && !isEditable && (
         <button
           onClick={doCopy}
-          className="inline-flex h-9 items-center gap-2 rounded-xl px-3 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="inline-flex h-9 items-center gap-2 rounded-xl px-3 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-500"
           aria-label={`Copy ${label}`}
         >
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -88,9 +125,10 @@ function FieldRow({
 }
 
 export default function ProfilePage({ data }: { data: ProfileData }) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [newData, setNewData] = useState(data);
-  const route = useRouter()
+  const [newData, setNewData] = useState<ProfileData>(data);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fullName = useMemo(() => {
     const f = newData.first_name?.trim();
@@ -116,38 +154,91 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setNewData((prevData) => ({ ...prevData, [name]: value }));
+    setNewData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Compute diff of editable fields only
+  const getChangedFields = (
+    original: ProfileData,
+    updated: ProfileData
+  ): Partial<Pick<ProfileData, EditableKeys>> => {
+    const allowed: EditableKeys[] = [
+      "username",
+      "first_name",
+      "last_name",
+      "email",
+      "phone_number",
+      "status",
+    ];
+    const diff: Partial<Pick<ProfileData, EditableKeys>> = {};
+    for (const key of allowed) {
+      const o = (original as any)[key];
+      const u = (updated as any)[key];
+      if (u !== o) {
+        (diff as any)[key] = u;
+      }
+    }
+    return diff;
+  };
+
+  const validate = () => {
+    // quick client validations
+    if (newData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newData.email)) {
+      toast.error("Please enter a valid email address");
+      return false;
+    }
+    if (newData.phone_number && newData.phone_number.length < 6) {
+      toast.error("Phone looks too short");
+      return false;
+    }
+    if (newData.phone_number && newData.phone_number.length > 14) {
+      toast.error("Phone must have less than 14 characters");
+      return false;
+    }
+    return true;
   };
 
   const handleSave = async () => {
-       // Wrap the fetch call inside toast.promise
-        toast.promise(
-            fetch("/api/profile/update", {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ user: newData }),
-            }).then(async (response) => {
-                if (response.ok) {
-                    setIsEditing(false);
-                    route.refresh(); // Trigger a refresh after updating
-                    return "Profile updated successfully"; // Success message
-                } else {
-                    throw new Error("Failed to update profile"); // Error message
-                }
-            }),
-            {
-                loading: "Updating profile...",
-                success: <b>Profile updated successfully!</b>,
-                error: <b>Failed to update profile.</b>,
-            }
-        );
+    if (!validate()) return;
+
+    const payload = getChangedFields(data, newData);
+    if (Object.keys(payload).length === 0) {
+      toast("No changes to save");
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await toast.promise(
+        fetch("/api/profile/update", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user: payload }), // ✅ send only changed fields
+        }).then(async (r) => {
+          if (!r.ok) throw new Error("Failed to update profile");
+          console.log(r);
+          
+          return r.json().catch(() => null);
+        }),
+        {
+          loading: "Updating profile...",
+          success: <b>Profile updated successfully!</b>,
+          error: <b>Failed to update profile.</b>,
+        }
+      );
+      setIsEditing(false);
+      router.refresh();
+    } catch (e) {
+      // toast already handled via toast.promise
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div className="min-h-screen py-4">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+    
+      <div className="mx-auto  sm:px-6 lg:px-8">
         {/* Header Card */}
         <div className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -171,19 +262,65 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
               </div>
             </div>
 
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-customViolet px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-customViolet/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
-            >
-              <Edit3 className="h-4 w-4" />
-              {isEditing ? "Cancel" : "Edit Profile"}
-            </button>
+            <div className="flex items-center gap-3">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setNewData(data); // revert
+                      setIsEditing(false);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
+                  >
+                    <X className="h-4 w-4" /> Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-customViolet px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-customViolet/90 disabled:opacity-60"
+                  >
+                    <Save className="h-4 w-4" /> {isSaving ? "Saving..." : "Save"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-customViolet px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-customViolet/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
+                >
+                  <Edit3 className="h-4 w-4" /> Edit Profile
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Details Card */}
-        <div className="mt-6 overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <div className="grid gap-2">
+        <div
+          className={`mt-6 overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-200 ${
+            isEditing ? "ring-violet-200" : ""
+          }`}
+        >
+          <div className="grid grid-cols-1 gap-2 space-x-6 md:grid-cols-2">
+            <FieldRow
+              icon={User}
+              label="First name"
+              value={newData.first_name}
+              onCopy={handleCopy}
+              isEditable={isEditing}
+              onChange={handleChange}
+              name="first_name"
+              placeholder="Enter first name"
+            />
+            <FieldRow
+              icon={User}
+              label="Last name"
+              value={newData.last_name}
+              onCopy={handleCopy}
+              isEditable={isEditing}
+              onChange={handleChange}
+              name="last_name"
+              placeholder="Enter last name"
+            />
             <FieldRow
               icon={Mail}
               label="Email"
@@ -192,6 +329,7 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
               isEditable={isEditing}
               onChange={handleChange}
               name="email"
+              placeholder="name@example.com"
             />
             <FieldRow
               icon={Phone}
@@ -201,6 +339,7 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
               isEditable={isEditing}
               onChange={handleChange}
               name="phone_number"
+              placeholder="e.g. 017********"
             />
             <FieldRow
               icon={User}
@@ -210,45 +349,53 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
               isEditable={isEditing}
               onChange={handleChange}
               name="username"
+              placeholder="Choose a username"
             />
             <FieldRow
-              icon={Shield}
+              icon={BadgeCheck}
               label="Status"
               value={newData.status}
               onCopy={handleCopy}
               isEditable={isEditing}
               onChange={handleChange}
               name="status"
+              placeholder="Active / Inactive"
             />
+            {/* Read-only rows */}
             <FieldRow
-              icon={Hash}
-              label="User ID"
-              value={newData.id}
-              onCopy={handleCopy}
+              icon={Shield}
+              label="Role"
+              value={newData.role}
               isEditable={false}
-              name="id"
+              name="role"
             />
-            <FieldRow
-              icon={Hash}
-              label="PID"
-              value={newData.pid}
-              onCopy={handleCopy}
-              isEditable={false}
-              name="pid"
-            />
+            <FieldRow icon={Hash} label="User ID" value={newData.id} isEditable={false} name="id" />
+            <FieldRow icon={Hash} label="PID" value={newData.pid} isEditable={false} name="pid" />
           </div>
+
+          {/* Sticky action bar for small screens while editing */}
           {isEditing && (
-            <div className="mt-6 flex justify-end">
+            <div className="pointer-events-auto sticky bottom-4 mt-6 flex items-center justify-end gap-3 rounded-2xl bg-white/80 p-3 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+              <button
+                onClick={() => {
+                  setNewData(data);
+                  setIsEditing(false);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
+              >
+                <X className="h-4 w-4" /> Discard
+              </button>
               <button
                 onClick={handleSave}
-                className="inline-flex items-center gap-2 rounded-xl bg-customViolet hover:bg-customViolet/90 px-4 py-2 text-white font-semibold"
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 rounded-xl bg-customViolet px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-customViolet/90 disabled:opacity-60"
               >
-                Save Changes
+                <Save className="h-4 w-4" /> {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           )}
         </div>
       </div>
-    </div>
+    
   );
 }

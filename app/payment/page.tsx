@@ -54,7 +54,7 @@ export default function PaymentPage() {
     fetchInvoiceData();
   }, [invoice_payment_id]);
 
-  console.log(selectedGateway);
+  console.log(invoice_payment_id);
 
   // Safely access the data (with optional chaining)
   const invoice = invoiceData?.invoice;

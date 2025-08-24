@@ -44,7 +44,7 @@ export async function getMerchantProfile() {
 
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}/user/profile/merchant/`, {
+    res = await fetch(`${baseUrl}/user/merchant-profile`, {
       headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
