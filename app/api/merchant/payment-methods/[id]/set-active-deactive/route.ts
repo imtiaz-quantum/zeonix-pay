@@ -1,32 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/authOptions";
-import { getAccessToken } from "@/app/lib/getToken";
+/* import { apiRequest } from "@/lib/apiRequest";
+import { NextResponse } from "next/server";
 
 
 export const dynamic = "force-dynamic";
-type Params = Promise<{ id: string }>;
 
-export async function PATCH(_req: NextRequest, { params }: { params: Params }) {
-  const { id } = await params;
-  const baseUrl = process.env.BASE_URL;
-  const session = await getServerSession(authOptions);
-  const token = getAccessToken(session);
-
-  if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-  const upstream = await fetch(`${baseUrl}/u/wallet/payment-methods/${id}/set-active-deactive/`, {
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  const { data, status } = await apiRequest(`/u/wallet/payment-methods/${params.id}/set-active-deactive/`, {
     method: "PATCH",
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    cache: "no-store",
   });
+  return NextResponse.json(data, { status });
+}
+ */
 
-  const text = await upstream.text();
-  let data: unknown = null; try { data = text ? JSON.parse(text) : null; } catch { data = text; }
 
-  if (!upstream.ok) {
-    return NextResponse.json({ message: "Upstream error", details: data }, { status: upstream.status });
+import { NextResponse } from "next/server";
+import { apiRequest } from "@/lib/apiRequest";
+
+
+export const dynamic = "force-dynamic";
+
+type Params = { id: string };
+
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<Params> }
+) {
+  try {
+    const { id } = await context.params;
+
+    const { data, status } = await apiRequest(`/u/wallet/payment-methods/${id}/set-active-deactive`, {
+      method: "PATCH",
+    });
+
+    return NextResponse.json(data, { status });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    return NextResponse.json({ message }, { status: 500 });
   }
-
-  return NextResponse.json(data ?? { ok: true }, { status: 200 });
 }

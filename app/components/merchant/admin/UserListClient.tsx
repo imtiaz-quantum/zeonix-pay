@@ -5,13 +5,30 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, RefreshCcw, Eye, EyeOff } from "lucide-react";
+import { Pencil, RefreshCcw, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { TbPasswordUser } from "react-icons/tb";
 
@@ -32,7 +49,7 @@ type ApiUser = {
     brand_logo?: string;
     status?: string;
     fees_type?: string;
-    fees?: string;
+    fees?: string;         // <— we’ll use this
     is_active?: boolean;
   };
 };
@@ -47,15 +64,17 @@ type InitialPayload = {
 
 type User = {
   id: string;
+  pid: string;
   storeId: string;
+  first_name: string;
+  last_name: string;
   name: string;
   email: string;
   phone: string;
-  balance: string;
-  depositFee: string;
-  payoutFee: string;
   status: "active" | "inactive";
   role: string;
+  fees: string;           // <— added for edit & display
+  brand_name?: string;
 };
 
 type Props = {
@@ -65,25 +84,27 @@ type Props = {
 
 export default function UserListClient({ initialData, currentPage }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams(); // if you later add more query params
+  const searchParams = useSearchParams();
 
   // Normalize server data to table rows
   const rows = useMemo<User[]>(() => {
     return (initialData?.data ?? []).map((u) => ({
       id: String(u.id),
+      pid: u.pid ?? "",
       storeId: u.pid ? u.pid.slice(0, 8).toUpperCase() : "—",
+      first_name: u.first_name ?? "",
+      last_name: u.last_name ?? "",
       name: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "—",
       email: u.email ?? "—",
       phone: u.phone_number ?? "—",
-      balance: "$0",              // not provided by this API; display placeholder or map real field if exists
-      depositFee: "0",            // not provided; adjust if you have fields
-      payoutFee: "0",             // not provided; adjust if you have fields
       status: /active/i.test(u.status) ? "active" : "inactive",
       role: u.role ?? "Merchant",
+      fees: u.merchant?.fees ?? "0.00",
+      brand_name: u.merchant?.brand_name,
     }));
   }, [initialData]);
 
-  // Search & status filter (client-side only for the current page items)
+  // Search & status filter (client-side for current page items)
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
 
@@ -95,13 +116,14 @@ export default function UserListClient({ initialData, currentPage }: Props) {
         row.name.toLowerCase().includes(term) ||
         row.email.toLowerCase().includes(term) ||
         row.phone.includes(term) ||
-        row.storeId.toLowerCase().includes(term);
+        row.storeId.toLowerCase().includes(term) ||
+        (row.brand_name ?? "").toLowerCase().includes(term);
       const matchesStatus = statusFilter === "all" || row.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [rows, search, statusFilter]);
 
-  // Real (server) pagination controls
+  // Server-backed pagination controls
   const perPage = Math.max(1, initialData?.data?.length ?? 1);
   const totalPages = Math.max(1, Math.ceil((initialData?.count ?? rows.length) / perPage));
   const canPrev = Boolean(initialData?.previous) || currentPage > 1;
@@ -113,30 +135,24 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     router.push(`?${params.toString()}`);
   };
 
-  // Dialog & form states kept from your previous UI (edit/reset/toggle/delete local only)
+  // Dialog & form states
   const [editOpen, setEditOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+
   const [creating, setCreating] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
   const [selected, setSelected] = useState<User | null>(null);
 
-  const [form, setForm] = useState<Omit<User, "id">>({
-    storeId: "",
-    name: "",
-    email: "",
-    phone: "",
-    balance: "",
-    depositFee: "",
-    payoutFee: "",
-    status: "active",
-    role: "",
-  });
-
+  // Password reset state
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Add User form (now includes fees)
   const [addForm, setAddForm] = useState({
     first_name: "",
     last_name: "",
@@ -145,8 +161,10 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     password: "",
     phone_number: "",
     brand_name: "",
+    fees: "", // <— new
   });
   const [showAddPassword, setShowAddPassword] = useState(false);
+
   const requiredFilled =
     addForm.first_name.trim() &&
     addForm.last_name.trim() &&
@@ -154,9 +172,17 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     addForm.username.trim() &&
     addForm.password.trim().length >= 6 &&
     addForm.phone_number.trim() &&
-    addForm.brand_name.trim();
+    addForm.brand_name.trim() &&
+    addForm.fees.trim();
 
-  // POST create + refresh
+  // Edit form: first_name, last_name, fees (no balance/deposit/payout)
+  const [editForm, setEditForm] = useState({
+    first_name: "",
+    last_name: "",
+    fees: "",
+  });
+
+  // ====== CREATE USER (POST) ======
   const createUser = async () => {
     if (!requiredFilled || creating) return;
     setCreating(true);
@@ -164,9 +190,10 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     const req = fetch("/api/merchant/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      // Backend can map fees into merchant.fees if needed
       body: JSON.stringify(addForm),
     }).then(async (res) => {
-      const data = await res.json().catch(() => ({} as any));
+      const data = await res.json().catch(() => ({} as unknown));
       if (!res.ok) {
         const msg = data?.message || data?.error || data?.detail || `Request failed with ${res.status}`;
         throw new Error(msg);
@@ -190,41 +217,159 @@ export default function UserListClient({ initialData, currentPage }: Props) {
       password: "",
       phone_number: "",
       brand_name: "",
+      fees: "",
     });
 
-    // Re-run the server component -> refetch the current page
-    router.refresh();
+    router.refresh(); // re-fetch current page from server
   };
 
-  // Handlers (local-only versions preserved)
+  // ====== OPEN EDIT ======
   const openEdit = (row: User) => {
     setSelected(row);
-    setForm({
-      storeId: row.storeId,
-      name: row.name,
-      email: row.email,
-      phone: row.phone,
-      balance: row.balance,
-      depositFee: row.depositFee,
-      payoutFee: row.payoutFee,
-      status: row.status,
-      role: row.role,
+    setEditForm({
+      first_name: row.first_name || "",
+      last_name: row.last_name || "",
+      fees: row.fees || "",
     });
     setEditOpen(true);
   };
-  const saveEdit = () => setEditOpen(false);
-  const openReset = (row: User) => { setSelected(row); setPassword(""); setShowPassword(false); setResetOpen(true); };
-  const confirmReset = () => setResetOpen(false);
-  const openToggleConfirm = (row: User) => { setSelected(row); setConfirmToggleOpen(true); };
-  const doToggle = () => setConfirmToggleOpen(false);
-  const openDeleteConfirm = (row: User) => { setSelected(row); setConfirmDeleteOpen(true); };
-  const doDelete = () => setConfirmDeleteOpen(false);
+
+  // ====== SAVE EDIT (PATCH merchant.fees) ======
+  // The backend requested payload shape: { merchant: { fees: "15.00" } }
+  const saveEdit = async () => {
+    if (!selected) return;
+    if (!selected.pid) {
+      toast.error("Missing PID for this user.");
+      return;
+    }
+    if (!editForm.fees.trim()) {
+      toast.error("Fees is required.");
+      return;
+    }
+
+    setIsUpdating(true);
+
+    const payload = {
+      merchant: {
+        fees: String(editForm.fees),
+      },
+      // If later you want to update names as well, confirm backend shape and include them here.
+      // first_name: editForm.first_name,
+      // last_name: editForm.last_name,
+    };
+
+    const req = fetch(`/api/merchant/user/${selected.pid}/update`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({} as unknown));
+      if (!res.ok) {
+        const msg = data?.message || data?.error || data?.detail || `Request failed with ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
+    });
+
+    await toast.promise(req, {
+      loading: "Updating user...",
+      success: "User updated successfully.",
+      error: (e) => (e instanceof Error ? e.message : "Failed to update user."),
+    });
+
+    setIsUpdating(false);
+    setEditOpen(false);
+    router.refresh();
+  };
+
+  // ====== PASSWORD RESET (POST) ======
+  const openReset = (row: User) => {
+    setSelected(row);
+    setPassword("");
+    setShowPassword(false);
+    setResetOpen(true);
+  };
+
+  const confirmReset = async () => {
+    if (!selected) return;
+    if (!selected.pid) {
+      toast.error("Missing PID for this user.");
+      return;
+    }
+    if (password.trim().length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsResetting(true);
+
+    const req = fetch(`/api/merchant/user/${selected.pid}/password-reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reset_password: password }),
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({} as unknown));
+      if (!res.ok) {
+        const msg = data?.message || data?.error || data?.detail || `Request failed with ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
+    });
+
+    await toast.promise(req, {
+      loading: "Resetting password...",
+      success: "Password reset successfully.",
+      error: (e) => (e instanceof Error ? e.message : "Failed to reset password."),
+    });
+
+    setIsResetting(false);
+    setResetOpen(false);
+    setPassword("");
+    router.refresh();
+  };
+
+  // ====== TOGGLE STATUS (POST) ======
+  const openToggleConfirm = (row: User) => {
+    setSelected(row);
+    setConfirmToggleOpen(true);
+  };
+
+  const doToggle = async () => {
+    if (!selected) return;
+    if (!selected.pid) {
+      toast.error("Missing PID for this user.");
+      return;
+    }
+
+    const targetStatus = selected.status === "active" ? "disable" : "active";
+    setIsToggling(true);
+
+    const req = fetch(`/api/merchant/user/${selected.pid}/approved`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: targetStatus }),
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({} as unknown));
+      if (!res.ok) {
+        const msg = data?.message || data?.error || data?.detail || `Request failed with ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
+    });
+
+    await toast.promise(req, {
+      loading: selected.status === "active" ? "Deactivating user..." : "Activating user...",
+      success: "User status updated.",
+      error: (e) => (e instanceof Error ? e.message : "Failed to update status."),
+    });
+
+    setIsToggling(false);
+    setConfirmToggleOpen(false);
+    router.refresh();
+  };
 
   return (
     <Card className="space-y-4 p-4">
-      {/* Remove if Toaster is already mounted globally */}
-      <Toaster position="top-right" />
-
       <div>
         <h1 className="text-xl font-semibold">Users List</h1>
         <p className="text-sm text-muted-foreground">All staff in your system.</p>
@@ -233,7 +378,7 @@ export default function UserListClient({ initialData, currentPage }: Props) {
       {/* Search & Filter */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
-          placeholder="Search by storeID, name, email or phone..."
+          placeholder="Search by storeID, name, email, phone, or brand..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="sm:w-1/3"
@@ -251,7 +396,10 @@ export default function UserListClient({ initialData, currentPage }: Props) {
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="bg-customViolet text-white hover:bg-customViolet/90 hover:cursor-pointer" onClick={() => setAddOpen(true)}>
+          <Button
+            className="bg-customViolet text-white hover:bg-customViolet/90 hover:cursor-pointer"
+            onClick={() => setAddOpen(true)}
+          >
             Add User
           </Button>
         </div>
@@ -262,15 +410,14 @@ export default function UserListClient({ initialData, currentPage }: Props) {
         <Table className="min-w-full text-sm">
           <TableHeader>
             <TableRow className="hover:bg-customViolet bg-customViolet text-white">
-              <TableHead className="w-[15%] text-white">StoreID</TableHead>
-              <TableHead className="w-[20%] text-white">Name</TableHead>
-              <TableHead className="w-[20%] text-white">Email</TableHead>
-              <TableHead className="w-[15%] text-white">Phone</TableHead>
-              <TableHead className="w-[10%] text-white">Balance</TableHead>
-              <TableHead className="w-[10%] text-white">Deposit (%)</TableHead>
-              <TableHead className="w-[10%] text-white">Payout (%)</TableHead>
+              <TableHead className="w-[12%] text-white">StoreID</TableHead>
+              <TableHead className="w-[18%] text-white">Name</TableHead>
+              <TableHead className="w-[18%] text-white">Email</TableHead>
+              <TableHead className="w-[14%] text-white">Phone</TableHead>
+              <TableHead className="w-[14%] text-white">Brand</TableHead>
+              <TableHead className="w-[8%] text-white">Fees</TableHead>
               <TableHead className="w-[10%] text-white">Status</TableHead>
-              <TableHead className="w-[15%] text-white text-left">Actions</TableHead>
+              <TableHead className="w-[16%] text-white text-left">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -280,9 +427,8 @@ export default function UserListClient({ initialData, currentPage }: Props) {
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.email}</TableCell>
                 <TableCell>{row.phone}</TableCell>
-                <TableCell>{row.balance}</TableCell>
-                <TableCell className="text-center">{row.depositFee}</TableCell>
-                <TableCell className="text-center">{row.payoutFee}</TableCell>
+                <TableCell>{row.brand_name ?? "—"}</TableCell>
+                <TableCell className="text-center">{row.fees}</TableCell>
                 <TableCell>
                   <Badge className={row.status === "active" ? "bg-green-600" : "bg-red-600"}>
                     {row.status}
@@ -290,25 +436,47 @@ export default function UserListClient({ initialData, currentPage }: Props) {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" title="Edit" onClick={() => openEdit(row)} aria-label="Edit" className="cursor-pointer">
+                    {/* Edit */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Edit"
+                      onClick={() => openEdit(row)}
+                      aria-label="Edit"
+                      className="cursor-pointer"
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Reset Password" onClick={() => openReset(row)} aria-label="Reset Password" className="cursor-pointer">
+                    {/* Reset Password */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Reset Password"
+                      onClick={() => openReset(row)}
+                      aria-label="Reset Password"
+                      className="cursor-pointer"
+                    >
                       <TbPasswordUser size={20} />
                     </Button>
-                    <Button variant="ghost" size="icon" title={row.status === "active" ? "Deactivate" : "Activate"} onClick={() => openToggleConfirm(row)} aria-label="Toggle Status" className="cursor-pointer">
+                    {/* Toggle Status */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title={row.status === "active" ? "Deactivate" : "Activate"}
+                      onClick={() => openToggleConfirm(row)}
+                      aria-label="Toggle Status"
+                      className="cursor-pointer"
+                    >
                       <RefreshCcw className={`h-4 w-4 ${row.status === "active" ? "text-orange-400" : "text-green-400"}`} />
                     </Button>
-                    <Button variant="ghost" size="icon" title="Delete" onClick={() => openDeleteConfirm(row)} aria-label="Delete" className="cursor-pointer">
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
+                    {/* NOTE: Delete action removed as requested */}
                   </div>
                 </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
                   No users found on this page.
                 </TableCell>
               </TableRow>
@@ -344,23 +512,40 @@ export default function UserListClient({ initialData, currentPage }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="first_name">First Name</Label>
-                <Input id="first_name" value={addForm.first_name} onChange={(e) => setAddForm((f) => ({ ...f, first_name: e.target.value }))} />
+                <Input
+                  id="first_name"
+                  value={addForm.first_name}
+                  onChange={(e) => setAddForm((f) => ({ ...f, first_name: e.target.value }))}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="last_name">Last Name</Label>
-                <Input id="last_name" value={addForm.last_name} onChange={(e) => setAddForm((f) => ({ ...f, last_name: e.target.value }))} />
+                <Input
+                  id="last_name"
+                  value={addForm.last_name}
+                  onChange={(e) => setAddForm((f) => ({ ...f, last_name: e.target.value }))}
+                />
               </div>
             </div>
 
             <div className="grid gap-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={addForm.email} onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))} />
+              <Input
+                id="email"
+                type="email"
+                value={addForm.email}
+                onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="username">Username</Label>
-                <Input id="username" value={addForm.username} onChange={(e) => setAddForm((f) => ({ ...f, username: e.target.value }))} />
+                <Input
+                  id="username"
+                  value={addForm.username}
+                  onChange={(e) => setAddForm((f) => ({ ...f, username: e.target.value }))}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="password">Password</Label>
@@ -387,18 +572,39 @@ export default function UserListClient({ initialData, currentPage }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="phone_number">Phone Number</Label>
-                <Input id="phone_number" value={addForm.phone_number} onChange={(e) => setAddForm((f) => ({ ...f, phone_number: e.target.value }))} />
+                <Input
+                  id="phone_number"
+                  value={addForm.phone_number}
+                  onChange={(e) => setAddForm((f) => ({ ...f, phone_number: e.target.value }))}
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="brand_name">Brand Name</Label>
-                <Input id="brand_name" value={addForm.brand_name} onChange={(e) => setAddForm((f) => ({ ...f, brand_name: e.target.value }))} />
+                <Input
+                  id="brand_name"
+                  value={addForm.brand_name}
+                  onChange={(e) => setAddForm((f) => ({ ...f, brand_name: e.target.value }))}
+                />
               </div>
+            </div>
+
+            {/* NEW: Fees */}
+            <div className="grid gap-1.5">
+              <Label htmlFor="fees">Fees</Label>
+              <Input
+                id="fees"
+                value={addForm.fees}
+                onChange={(e) => setAddForm((f) => ({ ...f, fees: e.target.value }))}
+                placeholder="e.g. 10.00"
+              />
             </div>
           </div>
 
           <DialogFooter className="gap-2">
             <DialogClose asChild>
-              <Button variant="outline" className="cursor-pointer" disabled={creating}>Cancel</Button>
+              <Button variant="outline" className="cursor-pointer" disabled={creating}>
+                Cancel
+              </Button>
             </DialogClose>
             <Button
               onClick={createUser}
@@ -412,66 +618,58 @@ export default function UserListClient({ initialData, currentPage }: Props) {
         </DialogContent>
       </Dialog>
 
-          {/* === Edit User Dialog === */}
+      {/* === Edit User Dialog (first_name, last_name, fees) === */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Modify user information, then click Save.</DialogDescription>
+            <DialogDescription>Update user details below.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="email-edit">Email</Label>
-              <Input id="email-edit" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="balance">Balance</Label>
-              <Input id="balance" value={form.balance} onChange={(e) => setForm((f) => ({ ...f, balance: e.target.value }))} />
-            </div>
-            <div className="flex gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="depositFee">Deposit (%)</Label>
-                <Input id="depositFee" value={form.depositFee} onChange={(e) => setForm((f) => ({ ...f, depositFee: e.target.value }))} />
+                <Label htmlFor="edit_first_name">First Name</Label>
+                <Input
+                  id="edit_first_name"
+                  value={editForm.first_name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))}
+                />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="payoutFee">Payout (%)</Label>
-                <Input id="payoutFee" value={form.payoutFee} onChange={(e) => setForm((f) => ({ ...f, payoutFee: e.target.value }))} />
+                <Label htmlFor="edit_last_name">Last Name</Label>
+                <Input
+                  id="edit_last_name"
+                  value={editForm.last_name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, last_name: e.target.value }))}
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label>Status</Label>
-                <Select
-                  value={form.status}
-                  onValueChange={(v) => setForm((f) => ({ ...f, status: v as "active" | "inactive" }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit_fees">Fees</Label>
+              <Input
+                id="edit_fees"
+                value={editForm.fees}
+                onChange={(e) => setEditForm((f) => ({ ...f, fees: e.target.value }))}
+                placeholder="e.g. 15.00"
+              />
             </div>
           </div>
 
           <DialogFooter className="gap-2">
             <DialogClose asChild>
-              <Button variant="outline" className="cursor-pointer">Cancel</Button>
+              <Button variant="outline" className="cursor-pointer" disabled={isUpdating}>
+                Cancel
+              </Button>
             </DialogClose>
-            <Button onClick={saveEdit} className="bg-customViolet hover:bg-customViolet/90 cursor-pointer">Save</Button>
+            <Button
+              onClick={saveEdit}
+              disabled={isUpdating}
+              className="bg-customViolet hover:bg-customViolet/90 cursor-pointer"
+            >
+              {isUpdating ? "Saving..." : "Save"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -509,15 +707,15 @@ export default function UserListClient({ initialData, currentPage }: Props) {
 
           <DialogFooter className="gap-2">
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" disabled={isResetting}>Cancel</Button>
             </DialogClose>
             <Button
               onClick={confirmReset}
-              disabled={password.trim().length < 6}
+              disabled={password.trim().length < 6 || isResetting}
               title={password.trim().length < 6 ? "Password must be at least 6 characters" : "Confirm reset"}
               className="bg-customViolet hover:bg-customViolet/90 cursor-pointer"
             >
-              Confirm
+              {isResetting ? "Please wait..." : "Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -537,29 +735,13 @@ export default function UserListClient({ initialData, currentPage }: Props) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={doToggle} className="bg-customViolet hover:bg-customViolet/90">
-              Yes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* === Delete Confirm === */}
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete user?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selected
-                ? `This will permanently remove “${selected.name}”. You can’t undo this action.`
-                : "This action cannot be undone."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={doDelete}>
-              Delete
+            <AlertDialogCancel disabled={isToggling}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={doToggle}
+              disabled={isToggling}
+              className="bg-customViolet hover:bg-customViolet/90"
+            >
+              {isToggling ? "Please wait..." : "Yes"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,9 +1,7 @@
-'use client';
+"use client";
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import toast from "react-hot-toast";
 
 export type BkashAgentFlowProps = {
   merchantName: string;
@@ -14,69 +12,92 @@ export type BkashAgentFlowProps = {
   onClose: () => void;
   onBack?: () => void;
   onVerifyTrx?: (trxId: string) => Promise<void> | void;
-  paymentMethod: string; // Add the payment method prop
+  paymentMethod: string; // e.g. "bkash-agent" | "bkash-personal" | ...
 };
 
 export default function BkashAgentFlow({
   merchantName,
   merchantInvoiceId,
-  merchantLogoSrc = "/bkash.png",
+  merchantLogoSrc = "/geteway/bkash.svg",
   receiverMsisdn,
   amount,
-  onClose,
   onBack,
   onVerifyTrx,
-  paymentMethod, // Add paymentMethod prop here
+  paymentMethod,
 }: BkashAgentFlowProps) {
   const [trxId, setTrxId] = useState("");
-  const [copied, setCopied] = useState(false);
+  const dialCode = paymentMethod.includes("bkash")
+    ? "*247#"
+    : paymentMethod.includes("nagad")
+    ? "*167#"
+    : "*322#";
+  const method = paymentMethod.includes("bkash")
+    ? "bKash"
+    : paymentMethod.includes("nagad")
+    ? "Nagad"
+    : "Rocket";
+
+    const providerColor =
+  paymentMethod.includes("bkash")
+    ? "rgba(207, 39, 113, 0.90)"
+    : paymentMethod.includes("nagad")
+    ? "rgba(201, 0, 8, 0.90)"
+    : "rgba(137, 40, 143, 0.90)";
+
+
+  const actionText = paymentMethod.includes("personal") ? "Send Money" : "Cash Out";
 
   const copyNumber = async () => {
     try {
       await navigator.clipboard.writeText(receiverMsisdn);
-      setCopied(true);
-      toast.success("কপি হয়েছে")
-      setTimeout(() => setCopied(false), 1500);
-    } catch { /* noop */ }
+    } catch {}
   };
 
-
-  // Set the button text and steps based on the payment method (personal or agent)
-  const actionText = paymentMethod.includes("personal") ? "Send Money" : "Cash Out";
-  const dialCode = paymentMethod.includes("bkash") ? "*247#" : paymentMethod.includes("nagad") ? "*167#" : "*322#" // Dynamic dial code
-  const method = paymentMethod.includes("bkash") ? "Bkash" : paymentMethod.includes("nagad") ? "Nagad" : "rocket"
-
-  const onVerify = async () => {
-    console.log(trxId);
-    
+  const verify = async () => {
     if (!trxId.trim()) return;
-
-    // Construct the correct API URL based on the selected payment method
-    const url = `${process.env.BASE_URL}/get-payment/${method.toLowerCase()}-payment/?method=${paymentMethod.toLowerCase()}&invoice_payment_id=${merchantInvoiceId}`;
-
-    await fetch(url, {
-      method: "POST",
-      body: JSON.stringify({ transaction_Id: trxId }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    })
-      .then(response => response.json())
-      .then(data => {
-        console.log("Response from server:", data);
-        toast.error(data.message)
-      })
-      .catch(error => {
-        console.error("Error verifying transaction:", error);
-      });
+    if (onVerifyTrx) await onVerifyTrx(trxId.trim());
   };
-
 
   return (
-    <div className="w-full rounded-2xl bg-white ring-1 ring-black/5">
-      {/* Pink instruction card */}
-      <div className="rounded-xl bg-rose-600/90 text-white">
+    <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden mx-auto">
+      {/* Header row with Back button (no Home icon) */}
+      <div className="flex  items-center justify-between px-5 py-4 border-b">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900"
+        >
+          {/* back chevron */}
+          <svg viewBox="0 0 24 24" className="h-5 w-5">
+            <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+          </svg>
+          Back to payment
+        </button>
+
+        <div className="rounded-xl border border-slate-200 p-2 grid place-items-center">
+          <Image src={merchantLogoSrc} alt="bKash" width={50} height={50} className="object-contain" />
+        </div>
+      </div>
+
+      {/* Merchant row */}
+      <div className="flex items-center gap-4 px-6 pt-5">
+        <div className="flex-1 rounded-xl border border-slate-200 p-3">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-violet-100 text-violet-700 font-semibold">
+              ৳
+            </div>
+            <div>
+              <div className="font-medium text-slate-800">{merchantName}</div>
+              <div className="text-xs text-slate-500">
+                Invoice ID : <span className="font-mono">{merchantInvoiceId.slice(0, 10)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+          <span className="font-semibold bg-white/20 rounded px-2 py-0.5 tel">৳{amount.toFixed(2)}</span>
+      </div>
+
+      {/* Instruction card */}
+      <div className={`mx-6 my-6 rounded-xl bg-rose-600/90 text-white`} style={{ backgroundColor: providerColor }}>
         <div className="px-6 pt-5 pb-2 text-center">
           <div className="text-sm/5 font-semibold tracking-wide">ট্রানজেকশন আইডি দিন</div>
         </div>
@@ -91,9 +112,13 @@ export default function BkashAgentFlow({
         </div>
 
         <div className="px-6 pb-6 space-y-3 text-[13px]">
-          <Step>{dialCode} ডায়াল করে আপনার {method} মোবাইল মেনুতে যান অথবা অ্যাপ চালু করুন</Step>
+          <Step>
+            {dialCode} ডায়াল করে আপনার {method} মোবাইল মেনুতে যান অথবা অ্যাপ চালু করুন
+          </Step>
           <Divider />
-          <Step><b className="">{`${actionText} এ ক্লিক করুন`}</b></Step>
+          <Step>
+            <b>{actionText} এ ক্লিক করুন</b>
+          </Step>
           <Divider />
           <Step className="flex items-center gap-2 flex-wrap">
             উত্তোলক নম্বর হিসেবে এই নম্বরটি লিখুন{" "}
@@ -111,22 +136,21 @@ export default function BkashAgentFlow({
             <span className="font-semibold bg-white/20 rounded px-2 py-0.5">৳{amount.toFixed(2)}</span>
           </Step>
           <Divider />
-          <Step>নির্দিষ্ট ধাপে গিয়ে আপনার {paymentMethod === "personal" ? "Bkash" : "Nagad"} মোবাইল মেনু দিয়ে লেনদেন সম্পূর্ণ করুন।</Step>
-          <Divider />
-          <Step>সফলভাবে টাকা পাঠালে, আপনি {paymentMethod === "personal" ? "Bkash" : "Nagad"} থেকে একটি নিশ্চিতকরণ বার্তা পাবেন।</Step>
+          <Step>লেনদেন সফল হলে একটি নিশ্চিতকরণ বার্তা পাবেন।</Step>
           <Divider />
           <Step>
-            বার্তা পাওয়ার পর আপনার <b>Transaction ID</b> দিন এবং নিচের <b>VERIFY</b> বাটনে ক্লিক করুন।
+            বার্তা পাওয়ার পর আপনার <b>Transaction ID</b> দিন এবং <b>VERIFY</b> চাপুন।
           </Step>
         </div>
       </div>
 
-      {/* Verify button */}
-      <div className="px-6 pb-6 mt-6">
+      {/* Verify / Close */}
+      <div className="px-6 pb-6 flex gap-3">
         <button
-          onClick={onVerify}
+          onClick={verify}
           disabled={!trxId.trim()}
-          className="w-full rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-60"
+          style={{ backgroundColor: providerColor }}
+          className="flex-1 rounded-xl  px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
         >
           VERIFY
         </button>
@@ -135,10 +159,10 @@ export default function BkashAgentFlow({
   );
 }
 
+/* helpers */
 function Step({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <p className={`text-white ${className}`}>{children}</p>;
 }
-
 function Divider() {
   return <div className="h-px w-full bg-white/20 my-2" />;
 }

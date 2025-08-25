@@ -65,7 +65,7 @@ export async function PUT(req: Request) {
     }
 
     return NextResponse.json(data ?? { ok: true }, { status: upstream.status || 200 });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof Response) return e; // thrown unauthorized
     return NextResponse.json({ message: "Server error", details: String(e) }, { status: 500 });
   }
@@ -119,7 +119,7 @@ console.log("dataaaaaaaaaaaaaaaa",form);
 
     // Your backend may return different shapes; just pass it through.
     return NextResponse.json(data ?? { ok: true }, { status: upstream.status || 200 });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof Response) return e; // thrown unauthorized
     return NextResponse.json({ message: "Server error", details: String(e) }, { status: 500 });
   }

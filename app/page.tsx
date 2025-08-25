@@ -21,6 +21,7 @@
 // }
 
 "use client"
+export const dynamic = "force-static";
 // Payment Gateway Landing Page – Brand color #674cc4
 // Next.js (App Router), React, Tailwind CSS, Framer Motion, lucide-react
 // Save as: app/payment-gateway/page.tsx

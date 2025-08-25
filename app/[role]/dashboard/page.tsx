@@ -26,7 +26,7 @@ const tableHeaders = [
   "Amount",
 ];
 
-let cardData = {
+const cardData = {
   total_withdraw: "50,000",
   withdraw_processing: "35,000",
   failedWithdrawals: "5,000",

@@ -18,6 +18,15 @@ type MerchantData = {
     fees: string; // "10.00" (we display `${fees}%`)
 };
 
+type UploadResponse = {
+  ok?: boolean;
+  message?: string;
+  logoPath?: string;
+  path?: string;
+  url?: string;
+  [k: string]: unknown;
+};
+
 export default function ProfileCard({ data }: { data: MerchantData }) {
     const [isEditing, setIsEditing] = useState(false);
     const [newBrandName, setNewBrandName] = useState(data.brand_name);
@@ -61,21 +70,26 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
         }
 
         const formData = new FormData();
-        formData.append("brand_logo", newLogo); // <-- important key name
+        formData.append("brand_logo", newLogo);
 
         try {
             const res = await fetch("/api/profile/update", {
                 method: "POST",
-                body: formData,  // no Content-Type header
+                body: formData, // no Content-Type header
             });
 
-            const json = await res.json();
-            if (!res.ok) throw new Error(json?.message || "Upload failed");
+            const json = (await res.json()) as UploadResponse;
+
+            if (!res.ok) {
+                throw new Error(json.message ?? "Upload failed");
+            }
 
             toast.success("Logo uploaded!");
             console.log("Response:", json);
-        } catch (err: any) {
-            toast.error(err.message || "Upload failed");
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error ? err.message : "Upload failed";
+            toast.error(message);
         }
     };
 

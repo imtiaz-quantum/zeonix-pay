@@ -157,30 +157,35 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
     setNewData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Compute diff of editable fields only
-  const getChangedFields = (
-    original: ProfileData,
-    updated: ProfileData
-  ): Partial<Pick<ProfileData, EditableKeys>> => {
-    const allowed: EditableKeys[] = [
-      "username",
-      "first_name",
-      "last_name",
-      "email",
-      "phone_number",
-      "status",
-    ];
-    const diff: Partial<Pick<ProfileData, EditableKeys>> = {};
-    for (const key of allowed) {
-      const o = (original as any)[key];
-      const u = (updated as any)[key];
-      if (u !== o) {
-        (diff as any)[key] = u;
-      }
-    }
-    return diff;
-  };
+  const allowed = [
+  "username",
+  "first_name",
+  "last_name",
+  "email",
+  "phone_number",
+  "status",
+] as const satisfies readonly EditableKeys[];
 
+type Allowed = (typeof allowed)[number];
+  // Compute diff of editable fields only
+ function getChangedFields(
+  
+  original: ProfileData,
+  updated: ProfileData
+): Partial<Pick<ProfileData, Allowed>> {
+  // Record form makes assignment type-safe without `any`
+  const diff: Partial<Record<Allowed, ProfileData[Allowed]>> = {};
+
+  for (const key of allowed) {
+    const before = original[key];
+    const after = updated[key];
+    if (after !== before) {
+      diff[key] = after;
+    }
+  }
+
+  return diff;
+}
   const validate = () => {
     // quick client validations
     if (newData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newData.email)) {
