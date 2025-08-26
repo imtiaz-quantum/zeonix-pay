@@ -1,4 +1,4 @@
-import { createServer } from 'https'
+import { createServer } from 'http'
 import { parse } from 'url'
 import next from 'next'
  
@@ -14,7 +14,7 @@ app.prepare().then(() => {
   }).listen(port)
  
   console.log(
-    `> Server listening at https://zeonixpay.com:${port} as ${
+    `> Server listening at http://localhost:${port} as ${
       dev ? 'development' : process.env.NODE_ENV
     }`
   )
