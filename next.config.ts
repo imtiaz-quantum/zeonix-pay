@@ -12,9 +12,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "http",
-        hostname: "192.168.68.133",
-        port: "8000",
-        pathname: "/media/**", // allow all files under /media/
+        hostname: "api.zeonixpay.com",
+        pathname: "/media/**",   // matches /media/... paths
       },
     ],
   },
