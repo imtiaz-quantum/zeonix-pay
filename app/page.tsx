@@ -161,7 +161,7 @@ export default function PaymentGatewayLanding() {
           <nav className="hidden items-center gap-6 text-sm text-gray-700 md:flex">
             <a href="#features" className="hover:text-gray-900">Features</a>
             <a href="#pricing" className="hover:text-gray-900">Pricing</a>
-            <a href="#integrations" className="hover:text-gray-900">Integrations</a>
+            <a href="#integrations" className="hover:text-gray-900">Integrationsss</a>
             <a href="#faq" className="hover:text-gray-900">FAQ</a>
           </nav>
           <div className="flex items-center gap-3">
