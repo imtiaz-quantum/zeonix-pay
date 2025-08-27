@@ -36,6 +36,7 @@ import {
   type Deposit,
 } from "@/app/components/merchant/deposit/depositColumns";
 import { DataTableFacetedFilter } from "@/app/components/data-table-faceted-filter";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const statusOptions = [
   { value: "active", label: "Active" },
@@ -61,24 +62,32 @@ const methodOptions = [
 interface ApiResponse {
   status: boolean;
   count: number;
+  next: string | null;
+  previous: string | null;
   data: Deposit[];
 }
 
 export default function DepositTable({
   depositListPromise,
+  currentPage,
 }: {
   depositListPromise: Promise<ApiResponse>;
+  currentPage: number;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Resolve data provided by the server (Suspense handles loading)
+  const payload = use(depositListPromise);
+  const rows = payload.data;
+
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(
-    []
-  );
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const { data } = use(depositListPromise);
-  console.log(data);
+console.log(rows);
 
   const table = useReactTable({
-    data,
+    data: rows,
     columns: depositColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -92,33 +101,43 @@ export default function DepositTable({
     state: { sorting, columnFilters, columnVisibility },
   });
 
+  // --- Server-driven pagination numbers ---
+  const perPage = Math.max(1, rows.length); // current page items length
+  const totalPages = Math.max(1, Math.ceil(payload.count / perPage));
+  const canPrev = Boolean(payload.previous) || currentPage > 1;
+  const canNext = Boolean(payload.next);
+
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    params.set("page", String(page));
+    router.push(`?${params.toString()}`);
+  };
+
+  // Build a compact page range like: 1 … 4 5 [6] 7 8 … 20
+  const getPageRange = (current: number, total: number, max = 7) => {
+    if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
+    const half = Math.floor(max / 2);
+    let start = Math.max(1, current - half);
+    const end = Math.min(total, start + max - 1);
+    if (end - start + 1 < max) start = Math.max(1, end - max + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  };
+  const pages = getPageRange(currentPage, totalPages, 7);
+
   return (
     <div className="w-full overflow-hidden">
       <div className="flex items-center py-4 gap-2">
         <Input
           placeholder="Filter by transaction_id…"
-          value={
-            (table.getColumn("transaction_id")?.getFilterValue() as string) ??
-            ""
-          }
-          onChange={(e) =>
-            table.getColumn("transaction_id")?.setFilterValue(e.target.value)
-          }
+          value={(table.getColumn("transaction_id")?.getFilterValue() as string) ?? ""}
+          onChange={(e) => table.getColumn("transaction_id")?.setFilterValue(e.target.value)}
           className="md:max-w-sm flex-1"
         />
         <Input
           placeholder="Filter by invoice_payment_id…"
-          value={
-            (table
-              .getColumn("invoice_payment_id")
-              ?.getFilterValue() as string) ?? ""
-          }
-          onChange={(e) =>
-            table
-              .getColumn("invoice_payment_id")
-              ?.setFilterValue(e.target.value)
-          }
-          className=" max-w-sm flex-1"
+          value={(table.getColumn("invoice_payment_id")?.getFilterValue() as string) ?? ""}
+          onChange={(e) => table.getColumn("invoice_payment_id")?.setFilterValue(e.target.value)}
+          className="max-w-sm flex-1"
         />
 
         {table.getColumn("status") && (
@@ -173,13 +192,8 @@ export default function DepositTable({
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-customViolet">
                 {hg.headers.map((h) => (
-                  <TableHead
-                    key={h.id}
-                    className="text-white hover:bg-transparent py-2"
-                  >
-                    {h.isPlaceholder
-                      ? null
-                      : flexRender(h.column.columnDef.header, h.getContext())}
+                  <TableHead key={h.id} className="text-white hover:bg-transparent py-2">
+                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -188,26 +202,17 @@ export default function DepositTable({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={depositColumns.length}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={depositColumns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>
@@ -216,25 +221,59 @@ export default function DepositTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="space-x-2">
+      {/* Numbered Pagination */}
+      <div className="flex items-center justify-end py-4">
+        <div />
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => goToPage(Math.max(1, currentPage - 1))}
+            disabled={!canPrev}
           >
             Previous
           </Button>
+
+          {pages[0] !== 1 && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => goToPage(1)}>
+                1
+              </Button>
+              {pages[0] > 2 && <span className="px-1">…</span>}
+            </>
+          )}
+
+          {pages.map((p) => (
+            <Button
+              key={p}
+              variant={p === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => goToPage(p)}
+              className={p === currentPage ? "bg-customViolet text-white hover:bg-customViolet/90" : ""}
+            >
+              {p}
+            </Button>
+          ))}
+
+          {pages[pages.length - 1] !== totalPages && (
+            <>
+              {pages[pages.length - 1] < totalPages - 1 && <span className="px-1">…</span>}
+              <Button variant="outline" size="sm" onClick={() => goToPage(totalPages)}>
+                {totalPages}
+              </Button>
+            </>
+          )}
+
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={!canNext}
           >
             Next
           </Button>
         </div>
+        <div />
       </div>
     </div>
   );

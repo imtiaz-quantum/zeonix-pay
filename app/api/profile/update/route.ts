@@ -23,7 +23,6 @@ async function requireToken() {
 export async function PUT(req: Request) {
   try {
     const token = await requireToken();
-
     const ct = req.headers.get("content-type") || "";
     if (!ct.includes("application/json")) {
       return NextResponse.json(
@@ -31,7 +30,7 @@ export async function PUT(req: Request) {
         { status: 400 },
       );
     }
-
+    
     let payload: unknown = null;
     try {
       payload = await req.json();
@@ -41,7 +40,8 @@ export async function PUT(req: Request) {
         { status: 400 },
       );
     }
-
+    console.log("dataaaaaaaaaaaaaaaa",payload);
+    
     const upstream = await fetch(`${BASE}/user/merchant-profile/`, {
       method: "PUT",
       headers: {
@@ -76,6 +76,7 @@ export async function POST(req: Request) {
   try {
     const token = await requireToken();
 
+    console.log("dataaaaaaaaaaaaaaaa");
     const ct = req.headers.get("content-type") || "";
     if (!ct.includes("multipart/form-data")) {
       return NextResponse.json(
@@ -93,7 +94,6 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-console.log("dataaaaaaaaaaaaaaaa",form);
 
     // Forward original form-data to upstream (do not set Content-Type)
     const upstream = await fetch(`${BASE}/user/merchant-profile/`, {
@@ -135,7 +135,7 @@ export async function PATCH(req: Request) {
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const payload = await req.json();
-  console.log(payload)
+  console.log("payloaddddddddd",payload)
   const upstream = await fetch(`${baseUrl}/user/profile/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

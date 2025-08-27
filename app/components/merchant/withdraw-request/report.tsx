@@ -52,8 +52,25 @@ export default function Report({ dataa }: { dataa: Transaction[] }) {
       columnFilters,
       columnVisibility,
     },
+    // (optional) set a default page size
+    // initialState: { pagination: { pageSize: 10 } },
   })
-console.log(dataa);
+
+  // ---- Numbered pagination helpers (client-side) ----
+  const pageCount = table.getPageCount()
+  const currentPage = table.getState().pagination.pageIndex + 1
+  const canPrev = table.getCanPreviousPage()
+  const canNext = table.getCanNextPage()
+
+  const getPageRange = (current: number, total: number, max = 7) => {
+    if (total <= max) return Array.from({ length: total }, (_, i) => i + 1)
+    const half = Math.floor(max / 2)
+    let start = Math.max(1, current - half)
+    let end = Math.min(total, start + max - 1)
+    if (end - start + 1 < max) start = Math.max(1, end - max + 1)
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+  }
+  const pages = getPageRange(currentPage, pageCount, 7)
 
   return (
     <div className="w-full">
@@ -133,15 +150,59 @@ console.log(dataa);
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="space-x-2">
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+      {/* Numbered Pagination */}
+      <div className="flex items-center justify-between py-4">
+        <div />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!canPrev}
+          >
             Previous
           </Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+
+          {pages[0] !== 1 && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => table.setPageIndex(0)}>
+                1
+              </Button>
+              {pages[0] > 2 && <span className="px-1">…</span>}
+            </>
+          )}
+
+          {pages.map((p) => (
+            <Button
+              key={p}
+              variant={p === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => table.setPageIndex(p - 1)}
+              className={p === currentPage ? "bg-customViolet text-white hover:bg-customViolet/90" : ""}
+            >
+              {p}
+            </Button>
+          ))}
+
+          {pages[pages.length - 1] !== pageCount && (
+            <>
+              {pages[pages.length - 1] < pageCount - 1 && <span className="px-1">…</span>}
+              <Button variant="outline" size="sm" onClick={() => table.setPageIndex(pageCount - 1)}>
+                {pageCount}
+              </Button>
+            </>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!canNext}
+          >
             Next
           </Button>
         </div>
+        <div />
       </div>
     </div>
   )

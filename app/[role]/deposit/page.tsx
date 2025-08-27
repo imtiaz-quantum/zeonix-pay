@@ -373,19 +373,21 @@
 // }
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { getDepositList } from "@/app/lib/api/merchant/deposite";
 import DepositTable from "@/app/components/merchant/deposit/DepositTable";
 import { Suspense } from "react";
 import DepositTableSkeleton from "@/app/components/skeletons/DepositTableSkeleton";
 
-export default function Page() {
-  const depositListPromise = getDepositList();
+type PageProps = {
+  searchParams: Promise<{ page?: string }>; // Next 15: async
+};
+
+export default async function Page({ searchParams }: PageProps) {
+  const sp = await searchParams;                 // await it
+  const page = Number(sp?.page) || 1;            // current page
+  const depositListPromise = getDepositList(page); // <-- dynamic page
 
   return (
     <Card>
@@ -394,8 +396,11 @@ export default function Page() {
         <CardDescription>A list of recent transactions.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Suspense fallback={<DepositTableSkeleton/>}>
-          <DepositTable depositListPromise={depositListPromise} />
+        <Suspense fallback={<DepositTableSkeleton />}>
+          <DepositTable
+            depositListPromise={depositListPromise}
+            currentPage={page}
+          />
         </Suspense>
       </CardContent>
     </Card>

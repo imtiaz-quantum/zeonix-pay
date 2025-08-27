@@ -330,34 +330,37 @@ export default function Page() {
 }
  */
 
-import * as React from "react"
+import * as React from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card";
 import { getWithdrawRequests } from "@/app/lib/api/merchant/withdraw-request";
 import Report from "@/app/components/merchant/withdraw-request/report";
 
+type PageProps = {
+  // Next.js 15: searchParams is a Promise
+  searchParams: Promise<{ page?: string }>;
+};
 
-export default async function Page() {
+export default async function Page({ searchParams }: PageProps) {
+  const sp = await searchParams;
+  const page = Number(sp?.page) || 1;
 
-   const res = await getWithdrawRequests()
-console.log(res);
+  // fetch the specific page from your API
+  const res = await getWithdrawRequests(page);
+  // res is expected to be { status, count, next, previous, data: [...] }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">Recent Transactions</CardTitle>
-        <CardDescription>
-          A list of recent transactions.
-        </CardDescription>
+        <CardDescription>A list of recent transactions.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Report dataa={res?.data}/>
+        {/* If your Report component uses client-side pagination only, pass data as before */}
+        {/* If you updated Report to show server-driven numbered pagination, also pass currentPage and count */}
+        <Report dataa={res?.data} />
       </CardContent>
     </Card>
-  )
+  );
 }

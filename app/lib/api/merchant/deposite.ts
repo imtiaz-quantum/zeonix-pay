@@ -3,26 +3,25 @@ import { authOptions } from "../../authOptions";
 import { redirect } from "next/navigation";
 import { getAccessToken } from "../../getToken";
 
-export async function getDepositList() {
-  const baseUrl = process.env.BASE_URL;
+export async function getDepositList(page = 1) {
   const session = await getServerSession(authOptions);
   const token = getAccessToken(session);
-
   if (!token) throw new Error("Not authenticated");
+
+  const baseUrl = process.env.BASE_URL; // e.g. https://api.zeonixpay.com/api/v1
+  const url = `${baseUrl}/u/invoice/invoices/?page=${page}`;
 
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}/u/invoice/invoices/`, {
+    res = await fetch(url, {
       headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-      cache: 'force-cache',
+      cache: "no-store",
     });
   } catch (e) {
-    // Network failure / server down
     console.error("[getDepositList] upstream fetch failed", e);
-    redirect("/server-down"); // <-- show the server-down page
+    redirect("/server-down");
   }
 
-  // If backend is up but returning 5xx, also send users to server-down
   if (!res.ok) {
     if (res.status >= 500) {
       console.error("[getDepositList] upstream 5xx", res.status);
@@ -32,5 +31,6 @@ export async function getDepositList() {
     throw new Error(`Failed to fetch deposits: ${res.status} ${res.statusText} ${text}`);
   }
 
+  // { status, count, next, previous, data: [...] }
   return res.json();
 }

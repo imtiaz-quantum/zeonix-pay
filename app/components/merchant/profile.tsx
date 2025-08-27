@@ -207,6 +207,8 @@ type Allowed = (typeof allowed)[number];
     if (!validate()) return;
 
     const payload = getChangedFields(data, newData);
+    console.log(payload);
+    
     if (Object.keys(payload).length === 0) {
       toast("No changes to save");
       setIsEditing(false);
@@ -219,7 +221,7 @@ type Allowed = (typeof allowed)[number];
         fetch("/api/profile/update", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user: payload }), // ✅ send only changed fields
+          body: JSON.stringify( payload ), // ✅ send only changed fields
         }).then(async (r) => {
           if (!r.ok) throw new Error("Failed to update profile");
           console.log(r);
@@ -235,7 +237,6 @@ type Allowed = (typeof allowed)[number];
       setIsEditing(false);
       router.refresh();
     } catch (e) {
-      // toast already handled via toast.promise
     } finally {
       setIsSaving(false);
     }
