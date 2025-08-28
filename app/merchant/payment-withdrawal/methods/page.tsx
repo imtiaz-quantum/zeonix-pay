@@ -1,13 +1,12 @@
-import AddMethod from '@/app/components/merchant/payment-method/add-method';
-import { getPaymentMethodList } from '@/app/lib/api/merchant/payment-method';
-import React from 'react'
+import AddMethod from "@/app/components/merchant/payment-method/add-method";
+import { getPaymentMethodList } from "@/app/lib/api/merchant/payment-method";
 
-const page = async () => {
-  const res = await getPaymentMethodList()
-  console.log(res);
+
+export default async function Page() {
+
+  const res = await getPaymentMethodList();
+
   return (
-     <AddMethod data={res?.data}/>
-  )
+    <AddMethod data={res?.data ?? []}/>
+  );
 }
-
-export default page

@@ -11,7 +11,7 @@ export async function getPaymentMethodList() {
 
     if (!token) throw new Error("Not authenticated");
 
-    const res = await fetch(`${baseUrl}/u/wallet/payment-methods/`, {
+    const res = await fetch(`${baseUrl}/u/wallet/payment-methods/?all=true`, {
         headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
         cache: "no-store",
     });

@@ -21,6 +21,8 @@ type DynamicTableProps = {
 
 const StatCards: React.FC<DynamicTableProps> = ({ statsCardsPromise }) => {
   const data = statsCardsPromise ? use(statsCardsPromise).data : null;
+  console.log(data);
+  
 
   if (!data) {
     return null;

@@ -11,34 +11,68 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { columns, type Transaction } from "@/app/components/merchant/withdraw-request/reportColumns";
+import { ledgerColumns, type Ledger } from "./ledgerColumns";
 import { DataTableFacetedFilter } from "@/app/components/data-table-faceted-filter";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const statuses = [
+type ApiResponse = {
+  status: boolean;
+  count: number;        // total rows across pages
+  next: string | null;
+  previous: string | null;
+  data: Ledger[];       // current page rows
+};
+
+const statusOptions = [
   { value: "success", label: "Success" },
   { value: "pending", label: "Pending" },
   { value: "failed", label: "Failed" },
-  { value: "processing", label: "Processing" },
-  { value: "rejected", label: "Rejected" },
 ];
 
-export default function Report({
-  dataa,
-  count,
+const methodOptions = [
+  { value: "bkash", label: "bKash" },
+  { value: "nagad", label: "Nagad" },
+  { value: "rocket", label: "Rocket" },
+  { value: "upay", label: "Upay" },
+];
+
+const typeOptions = [
+  { value: "credit", label: "Credit" },
+  { value: "debit", label: "Debit" },
+];
+
+function getPageRange(current: number, total: number, max = 7) {
+  if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
+  const half = Math.floor(max / 2);
+  let start = Math.max(1, current - half);
+  const end = Math.min(total, start + max - 1);
+  if (end - start + 1 < max) start = Math.max(1, end - max + 1);
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
+
+export default function LedgerTable({
+  ledgerListPromise,
   currentPage,
 }: {
-  dataa: Transaction[];
-  count: number;        // total items across pages (from API)
-  currentPage: number;  // page from URL
+  ledgerListPromise: Promise<ApiResponse>;
+  currentPage: number; // from parent (?page=)
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const payload = React.use(ledgerListPromise);
+  const rows = payload.data;
+  console.log(rows);
+  
+
+  // ---- table state
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-console.log(dataa)
+
   const table = useReactTable({
-    data: dataa,
-    columns,
+    data: rows,
+    columns: ledgerColumns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -50,40 +84,35 @@ console.log(dataa)
     state: { sorting, columnFilters, columnVisibility },
   });
 
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // ---- Stable page size to avoid "ghost" pages on the last page ----
-  const pageSizeRef = React.useRef<number>(dataa.length || 1);
+  // ---- pagination (server-driven)
+  const pageSizeRef = React.useRef<number>(rows.length || 1);
   React.useEffect(() => {
-    if ((dataa?.length || 0) > pageSizeRef.current) {
-      pageSizeRef.current = dataa.length;
+    if ((rows?.length || 0) > pageSizeRef.current) {
+      pageSizeRef.current = rows.length;
     }
-    // If total fits on one page, ensure ref equals current length
-    if (count <= (dataa.length || 1)) {
-      pageSizeRef.current = dataa.length || 1;
+    if (payload.count <= (rows.length || 1)) {
+      pageSizeRef.current = rows.length || 1;
     }
-  }, [dataa.length, count]);
+  }, [rows.length, payload.count]);
 
-  const pageSize = Math.max(1, pageSizeRef.current);
-  const totalPages = Math.max(1, Math.ceil(count / pageSize));
-
-  // Clamp URL if page param is out of range
-  React.useEffect(() => {
-    if (currentPage > totalPages) {
-      const params = new URLSearchParams(searchParams?.toString() || "");
-      params.set("page", String(totalPages));
-      router.replace(`?${params.toString()}`);
-    }
-    if (currentPage < 1) {
-      const params = new URLSearchParams(searchParams?.toString() || "");
-      params.set("page", "1");
-      router.replace(`?${params.toString()}`);
-    }
-  }, [currentPage, totalPages, router, searchParams]);
-
+  const perPage = Math.max(1, pageSizeRef.current);
+  const totalPages = Math.max(1, Math.ceil(payload.count / perPage));
   const canPrev = currentPage > 1;
   const canNext = currentPage < totalPages;
+
+  // clamp if outside range
+  React.useEffect(() => {
+    if (currentPage > totalPages) {
+      const p = new URLSearchParams(searchParams?.toString() || "");
+      p.set("page", String(totalPages));
+      router.replace(`?${p.toString()}`);
+    }
+    if (currentPage < 1) {
+      const p = new URLSearchParams(searchParams?.toString() || "");
+      p.set("page", "1");
+      router.replace(`?${p.toString()}`);
+    }
+  }, [currentPage, totalPages, router, searchParams]);
 
   const goToPage = (page: number) => {
     const target = Math.min(Math.max(1, page), totalPages);
@@ -93,34 +122,31 @@ console.log(dataa)
     router.push(`?${params.toString()}`);
   };
 
-  // Compact range like: 1 … 4 5 [6] 7 8 … N
-  const getPageRange = (current: number, total: number, max = 7) => {
-    if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
-    const half = Math.floor(max / 2);
-    let start = Math.max(1, current - half);
-    const end = Math.min(total, start + max - 1);
-    if (end - start + 1 < max) start = Math.max(1, end - max + 1);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  };
   const pages = getPageRange(currentPage, totalPages, 7);
 
   return (
-    <div className="w-full">
-      <div className="flex items-center py-4 gap-2">
+    <div className="w-full overflow-hidden">
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row md:items-center gap-2 py-4">
         <Input
-          placeholder="Filter by trx_id…"
+          placeholder="Search by TRX ID…"
           value={(table.getColumn("trx_id")?.getFilterValue() as string) ?? ""}
           onChange={(e) => table.getColumn("trx_id")?.setFilterValue(e.target.value)}
-          className="max-w-sm"
+          className="md:max-w-sm flex-1"
         />
-
         {table.getColumn("status") && (
-          <DataTableFacetedFilter column={table.getColumn("status")} title="Status" options={statuses} />
+          <DataTableFacetedFilter column={table.getColumn("status")} title="Status" options={statusOptions} />
+        )}
+        {table.getColumn("method") && (
+          <DataTableFacetedFilter column={table.getColumn("method")} title="Method" options={methodOptions} />
+        )}
+        {table.getColumn("tran_type") && (
+          <DataTableFacetedFilter column={table.getColumn("tran_type")} title="Type" options={typeOptions} />
         )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
+            <Button variant="outline" className="md:ml-auto">
               Columns <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -139,13 +165,14 @@ console.log(dataa)
         </DropdownMenu>
       </div>
 
-      <div className="rounded-md border overflow-hidden">
+      {/* Table */}
+      <div className="rounded-md border overflow-hidden overflow-x-auto">
         <Table>
           <TableHeader className="bg-customViolet hover:bg-customViolet">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-customViolet">
                 {hg.headers.map((h) => (
-                  <TableHead key={h.id} className="text-white hover:bg-transparent py-2">
+                  <TableHead key={h.id} className="text-white hover:bg-transparent py-2 whitespace-nowrap">
                     {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
@@ -157,13 +184,15 @@ console.log(dataa)
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell key={cell.id} className="whitespace-nowrap">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={ledgerColumns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>
@@ -174,7 +203,6 @@ console.log(dataa)
 
       {/* Numbered Pagination */}
       <div className="flex items-center justify-end py-4">
-        <div />
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={!canPrev}>
             Previous
@@ -210,7 +238,6 @@ console.log(dataa)
             Next
           </Button>
         </div>
-        <div />
       </div>
     </div>
   );

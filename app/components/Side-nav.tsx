@@ -8,6 +8,7 @@ import {
   Send,
   Landmark,
   Settings,
+  BanknoteArrowDown,
   ChevronRight,
   LogOut,
   Users,
@@ -78,7 +79,8 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
         { href: "/admin/staff-list", icon: UserCog, label: "Staff List" },
         { href: "/admin/deposit", icon: ArrowRightLeft, label: "Deposit" },
         { href: "/admin/payout", icon: Send, label: "Payout" },
-        { href: "/admin/payment-withdrawal",icon: Landmark, label: "Payment Withdrawal"},
+        { href: "/admin/payment-withdrawal", icon: Landmark, label: "Payment Withdrawal" },
+        { href: "/merchant/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
         { href: "/admin/settings", icon: Settings, label: "Settings" },
       ];
     } else if (role === "staff") {
@@ -95,6 +97,7 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
             { href: "/staff/payment-withdrawal/methods", label: "Payment Methods" },
           ],
         },
+        { href: "/merchant/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
         { href: "/staff/settings", icon: Settings, label: "Settings" },
       ];
     } else if (role === "merchant") {
@@ -112,6 +115,7 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
             { href: "/merchant/payment-withdrawal/methods", label: "Payment Methods" },
           ],
         },
+        { href: "/merchant/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
         { href: "/merchant/settings", icon: Settings, label: "Settings" },
       ];
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import {
   ColumnFiltersState,
   SortingState,
@@ -80,11 +80,11 @@ export default function DepositTable({
   // Resolve data provided by the server (Suspense handles loading)
   const payload = use(depositListPromise);
   const rows = payload.data;
+console.log(rows);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-console.log(rows);
 
   const table = useReactTable({
     data: rows,
@@ -101,15 +101,37 @@ console.log(rows);
     state: { sorting, columnFilters, columnVisibility },
   });
 
-  // --- Server-driven pagination numbers ---
-  const perPage = Math.max(1, rows.length); // current page items length
-  const totalPages = Math.max(1, Math.ceil(payload.count / perPage));
-  const canPrev = Boolean(payload.previous) || currentPage > 1;
-  const canNext = Boolean(payload.next);
+  const pageSizeRef = useRef<number>(rows.length || 1);
+
+  useEffect(() => {
+    if (payload.next) {
+      pageSizeRef.current = Math.max(pageSizeRef.current, rows.length || 1);
+    }
+    if (!payload.next && !payload.previous) {
+      pageSizeRef.current = rows.length || 1;
+    }
+  }, [payload.next, payload.previous, rows.length]);
+
+  const pageSize = pageSizeRef.current || 1;
+  const totalPages = Math.max(1, Math.ceil(payload.count / pageSize));
+
+  // If someone navigates past totalPages via URL, clamp them back.
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      params.set("page", String(totalPages));
+      router.replace(`?${params.toString()}`);
+    }
+  }, [currentPage, totalPages, router, searchParams]);
+
+  const canPrev = currentPage > 1 && Boolean(payload.previous);
+  const canNext = currentPage < totalPages && Boolean(payload.next);
 
   const goToPage = (page: number) => {
+    const target = Math.min(Math.max(1, page), totalPages);
+    if (target === currentPage) return;
     const params = new URLSearchParams(searchParams?.toString() || "");
-    params.set("page", String(page));
+    params.set("page", String(target));
     router.push(`?${params.toString()}`);
   };
 
@@ -133,7 +155,7 @@ console.log(rows);
           onChange={(e) => table.getColumn("transaction_id")?.setFilterValue(e.target.value)}
           className="md:max-w-sm flex-1"
         />
-        <Input
+{/*         <Input
           placeholder="Filter by invoice_payment_id…"
           value={(table.getColumn("invoice_payment_id")?.getFilterValue() as string) ?? ""}
           onChange={(e) => table.getColumn("invoice_payment_id")?.setFilterValue(e.target.value)}
@@ -146,7 +168,7 @@ console.log(rows);
             title="Status"
             options={statusOptions}
           />
-        )}
+        )} */}
         {table.getColumn("pay_status") && (
           <DataTableFacetedFilter
             column={table.getColumn("pay_status")}
@@ -204,9 +226,7 @@ console.log(rows);
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))
@@ -228,7 +248,7 @@ console.log(rows);
           <Button
             variant="outline"
             size="sm"
-            onClick={() => goToPage(Math.max(1, currentPage - 1))}
+            onClick={() => goToPage(currentPage - 1)}
             disabled={!canPrev}
           >
             Previous

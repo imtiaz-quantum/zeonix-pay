@@ -30,7 +30,7 @@ export async function getWithdrawRequests(page = 1) {
   if (!token) throw new Error("Not authenticated");
 
   const baseUrl = process.env.BASE_URL; 
-  const url = `${baseUrl}/u/wallet/withdraw-request/?page=${page}`;
+  const url = `${baseUrl}/u/wallet/withdraw-request/?page=${page}&page_size=10`;
 
   let res: Response;
   try {

@@ -331,34 +331,29 @@ export default function Page() {
  */
 
 
-import * as React from "react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import * as React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getWithdrawRequests } from "@/app/lib/api/merchant/withdraw-request";
 import Report from "@/app/components/merchant/withdraw-request/report";
 
+type PageProps = { searchParams: Promise<{ page?: string }> };
 
-export default async function Page() {
+export default async function Page({ searchParams }: PageProps) {
+  const sp = await searchParams;               // Next 15: async
+  const page = Number(sp?.page) || 1;
 
-  const res = await getWithdrawRequests()
-  console.log(res);
+  // Expect shape: { status, count, next, previous, data }
+  const res = await getWithdrawRequests(page);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">Recent Transactions</CardTitle>
-        <CardDescription>
-          A list of recent transactions.
-        </CardDescription>
+        <CardDescription>A list of recent transactions.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Report dataa={res?.data} />
+        <Report dataa={res?.data ?? []} count={res?.count ?? 0} currentPage={page} />
       </CardContent>
     </Card>
-  )
+  );
 }

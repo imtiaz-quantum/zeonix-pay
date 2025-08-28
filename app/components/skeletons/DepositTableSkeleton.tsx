@@ -31,11 +31,10 @@ const DepositTableSkeleton = () => {
   return (
     <div className="w-full overflow-hidden">
       <div className="flex items-center py-4 gap-2">
-        <SkeletonPlaceholder width="200px" height="40px" className="flex-1" />
-        <SkeletonPlaceholder width="200px" height="40px" className="flex-1" />
+        <SkeletonPlaceholder width="400px" height="40px" />
         <SkeletonPlaceholder width="100px" height="40px" />
         <SkeletonPlaceholder width="100px" height="40px" />
-        <SkeletonPlaceholder width="100px" height="40px" />
+      {/*   <SkeletonPlaceholder width="100px" height="40px" /> */}
         <SkeletonPlaceholder width="100px" height="40px" className="ml-auto" />
       </div>
 
@@ -110,12 +109,12 @@ const DepositTableSkeleton = () => {
       </div>
 
       {/* Bottom pagination section */}
-      <div className="flex items-center justify-end space-x-2 py-4">
+   {/*    <div className="flex items-center justify-end space-x-2 py-4">
         <div className="space-x-2">
           <SkeletonPlaceholder width="80px" height="36px" />
           <SkeletonPlaceholder width="60px" height="36px" />
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

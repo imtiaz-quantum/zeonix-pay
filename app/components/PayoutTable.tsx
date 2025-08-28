@@ -31,12 +31,6 @@ const statusOptions = [
   { value: "failed", label: "Failed" },
 ];
 
-const payStatusOptions = [
-  { value: "paid", label: "Paid" },
-  { value: "unpaid", label: "Unpaid" },
-  { value: "failed", label: "Failed" },
-];
-
 const methodOptions = [
   { value: "bkash", label: "bKash" },
   { value: "nagad", label: "Nagad" },
@@ -46,8 +40,8 @@ const methodOptions = [
 
 interface ApiResponse {
   status: boolean;
-  count: number;       // total items across pages
-  data: Payout[];      // current page items
+  count: number;   // total items across pages
+  data: Payout[];  // current page items
 }
 
 export default function PayoutTable({
@@ -55,14 +49,13 @@ export default function PayoutTable({
   currentPage,
 }: {
   payoutListPromise: Promise<ApiResponse>;
-  currentPage: number;                // pass from parent via ?page=
+  currentPage: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const payload = React.use(payoutListPromise);
   const rows = payload.data;
-console.log(rows);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -83,19 +76,43 @@ console.log(rows);
     state: { sorting, columnFilters, columnVisibility },
   });
 
-  // -------- Server-driven numbered pagination ----------
-  const perPage = Math.max(1, rows.length); // items in current page
-  const totalPages = Math.max(1, Math.ceil(payload.count / perPage));
+  // ---------- Stable page size (prevents ghost pages) ----------
+  // Lock the largest page size we’ve seen; don’t shrink on last page.
+  const pageSizeRef = React.useRef<number>(rows.length || 1);
+  React.useEffect(() => {
+    if ((rows?.length || 0) > pageSizeRef.current) {
+      pageSizeRef.current = rows.length;
+    }
+    // If there’s only one page total (count <= current page size), make sure ref matches.
+    if (payload.count <= (rows.length || 1)) {
+      pageSizeRef.current = rows.length || 1;
+    }
+  }, [rows.length, payload.count]);
+
+  const pageSize = Math.max(1, pageSizeRef.current);
+  const totalPages = Math.max(1, Math.ceil(payload.count / pageSize));
+
+  // If user navigated past the last page via URL, clamp back.
+  React.useEffect(() => {
+    if (currentPage > totalPages) {
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      params.set("page", String(totalPages));
+      router.replace(`?${params.toString()}`);
+    }
+  }, [currentPage, totalPages, router, searchParams]);
+
   const canPrev = currentPage > 1;
   const canNext = currentPage < totalPages;
 
   const goToPage = (page: number) => {
+    const target = Math.min(Math.max(1, page), totalPages);
+    if (target === currentPage) return;
     const params = new URLSearchParams(searchParams?.toString() || "");
-    params.set("page", String(page));
+    params.set("page", String(target));
     router.push(`?${params.toString()}`);
   };
 
-  // Build a compact page window like: 1 … 4 5 [6] 7 8 … 20
+  // -------- Numbered page range (1 … 4 5 [6] 7 8 … N) --------
   const getPageRange = (current: number, total: number, max = 7) => {
     if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
     const half = Math.floor(max / 2);
@@ -119,9 +136,6 @@ console.log(rows);
         {table.getColumn("status") && (
           <DataTableFacetedFilter column={table.getColumn("status")} title="Status" options={statusOptions} />
         )}
-   {/*      {table.getColumn("pay_status") && (
-          <DataTableFacetedFilter column={table.getColumn("pay_status")} title="Pay Status" options={payStatusOptions} />
-        )} */}
         {table.getColumn("payment_method") && (
           <DataTableFacetedFilter column={table.getColumn("payment_method")} title="Method" options={methodOptions} />
         )}
@@ -187,12 +201,7 @@ console.log(rows);
       <div className="flex items-center justify-end py-4">
         <div />
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(Math.max(1, currentPage - 1))}
-            disabled={!canPrev}
-          >
+          <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={!canPrev}>
             Previous
           </Button>
 
@@ -226,12 +235,7 @@ console.log(rows);
             </>
           )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
-            disabled={!canNext}
-          >
+          <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={!canNext}>
             Next
           </Button>
         </div>

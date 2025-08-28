@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   Card,
@@ -33,8 +33,9 @@ import { Landmark, Smartphone, Coins } from "lucide-react";
 import { MdOutlinePayment } from "react-icons/md";
 import clsx from "clsx";
 import PaymentMethodsList from "./list";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
+import PaymentMethodsSkeleton from "../../skeletons/PaymentMethodsSkeleton";
 
 type Method = "bank" | "mobileBanking" | "crypto";
 
@@ -56,18 +57,9 @@ type CryptoMeta = {
   cryptoId: string;
 };
 
-type PaymentMethodItem = {
-  id: string;
-  method: Method;
-  details: string;
-  isPrimary: boolean;
-  meta?: BankMeta | MobileBankingMeta | CryptoMeta;
-};
-
-// ---- API types ----
 type MethodType = "bkash" | "nagad" | "rocket" | "upay" | "bank" | "crypto";
 
-type PaymentMethod = {
+export type PaymentMethod = {
   id: number;
   method_type: MethodType;
   params: {
@@ -79,15 +71,6 @@ type PaymentMethod = {
   created_at: string;
   updated_at: string;
   merchant: number;
-}
-
-//const STORAGE_KEY = "paymentMethods";
-
-// ----------  for logos/icons ----------
-const methodIconMap: Record<Method, React.ComponentType<{ className?: string }>> = {
-  bank: Landmark,
-  mobileBanking: Smartphone,
-  crypto: Coins,
 };
 
 function getProviderAsset(
@@ -107,6 +90,12 @@ function getProviderAsset(
   }
   return {};
 }
+
+const methodIconMap: Record<Method, React.ComponentType<{ className?: string }>> = {
+  bank: Landmark,
+  mobileBanking: Smartphone,
+  crypto: Coins,
+};
 
 function ProviderLogo({
   method,
@@ -132,9 +121,10 @@ function ProviderLogo({
   const Fallback = methodIconMap[method];
   return <Fallback className={clsx("h-5 w-5 text-muted-foreground", className)} />;
 }
-
 const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const [method, setMethod] = useState<Method>("bank");
   const [makePrimary, setMakePrimary] = useState<boolean>(false);
   // Bank
@@ -151,8 +141,7 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
   const [cryptoId, setCryptoId] = useState("");
 
   const router = useRouter();
-
-
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setMakePrimary(false);
@@ -165,8 +154,7 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
     setPhoneNumber("");
     setCryptoMethod(undefined);
     setCryptoId("");
-  }, [method]);
-
+  }, [method, open]);
 
   const detailsPreview = useMemo(() => {
     if (method === "bank") {
@@ -187,12 +175,15 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
     return "Crypto";
   }, [method, bankName, accountNumber, mobileProvider, phoneNumber, cryptoMethod, cryptoId]);
 
+  const saveDisabled =
+    (method === "bank" && (!holderName || !accountNumber || !bankName)) ||
+    (method === "mobileBanking" && (!mobileProvider || !phoneNumber)) ||
+    (method === "crypto" && (!cryptoMethod || !cryptoId));
 
-  // create payment method...
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting || saveDisabled) return;
 
-    // map UI -> API payload
     const method_type =
       method === "bank"
         ? "bank"
@@ -215,21 +206,17 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
             : cryptoId,
     };
 
+    setSubmitting(true);
     await toast.promise(
       (async () => {
         const res = await fetch("/api/merchant/payment-methods", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ method_type, params, status: "active" }),
+          body: JSON.stringify({ method_type, params, status: "active", is_primary: makePrimary }),
         });
-
-        const data = await res.json().catch(() => null);
-
-        if (!res.ok) {
-          throw new Error(data?.message ?? "Could not create method.");
-        }
-
-        return data?.message ?? "Method created!";
+        const json = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(json?.message ?? "Could not create method.");
+        return json?.message ?? "Method created!";
       })(),
       {
         loading: "Creating method...",
@@ -237,34 +224,60 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
         error: (err) => <b>{err.message}</b>,
       }
     );
-
-    router.refresh();
+    setSubmitting(false);
     setOpen(false);
+    router.refresh();
   };
 
+  // ---------- Pagination (server-driven, stable) ----------
+  // const totalPages = Math.max(1, Math.ceil((count || 0) / Math.max(1, pageSize)));
+  // const canPrev = currentPage > 1;
+  // const canNext = currentPage < totalPages;
+  // const pages = getPageRange(currentPage, totalPages, 7);
+
+  // const goToPage = (page: number) => {
+  //   // Hard clamp + no-op if same page
+  //   const target = Math.min(totalPages, Math.max(1, page));
+  //   if (target === currentPage) return;
+
+  //   const params = new URLSearchParams(searchParams?.toString() || "");
+  //   params.set("page", String(target));
+  //   // replace (not push) and scroll up for better UX
+  //   router.replace(`?${params.toString()}`);
+  //   if (typeof window !== "undefined") {
+  //     window.scrollTo({ top: 0, behavior: "smooth" });
+  //   }
+  // };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <MdOutlinePayment size={30} className="text-muted-foreground" />
+    <Card className="rounded-2xl shadow-sm border">
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-muted p-2">
+            <MdOutlinePayment size={22} className="text-muted-foreground" />
+          </div>
           <div>
-            <CardTitle className="font-headline">Payment Methods</CardTitle>
-            <CardDescription>Manage your connected bank accounts and cards.</CardDescription>
+            <CardTitle className="font-headline text-lg sm:text-xl">Payment Methods</CardTitle>
+            <CardDescription className="text-sm">
+              Manage your connected bank, mobile, and crypto methods.
+            </CardDescription>
           </div>
         </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-customViolet hover:bg-customViolet/90 cursor-pointer">Add Method</Button>
+            <Button className="bg-customViolet hover:bg-customViolet/90 cursor-pointer rounded-xl px-4">
+              Add Method
+            </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="sm:max-w-2xl rounded-2xl">
             <DialogHeader>
               <DialogTitle>Add Payment Method</DialogTitle>
               <DialogDescription>Save a method for faster withdrawals.</DialogDescription>
             </DialogHeader>
 
             <form onSubmit={onSubmit} className="space-y-5">
+              {/* Method picker */}
               {/* Method picker */}
               <div className="space-y-2">
                 <Label className="block">Method</Label>
@@ -273,14 +286,19 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
                   onValueChange={(v) => setMethod(v as Method)}
                   className="grid grid-cols-3 gap-3"
                 >
+                  {/* Bank - disabled */}
                   <Label
                     htmlFor="bank"
-                    className="flex items-center gap-2 border rounded-md p-3 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                    className={clsx(
+                      "flex items-center gap-2 border rounded-md p-3 cursor-not-allowed opacity-50"
+                    )}
                   >
-                    <RadioGroupItem id="bank" value="bank" />
+                    <RadioGroupItem id="bank" value="bank" disabled />
                     <Landmark className="h-4 w-4 text-muted-foreground" />
-                    Bank
+                    Bank (Disabled)
                   </Label>
+
+                  {/* Mobile Banking - enabled */}
                   <Label
                     htmlFor="mobileBanking"
                     className="flex items-center gap-2 border rounded-md p-3 cursor-pointer hover:bg-accent hover:text-accent-foreground"
@@ -289,16 +307,21 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
                     <Smartphone className="h-4 w-4 text-muted-foreground" />
                     Mobile Banking
                   </Label>
+
+                  {/* Crypto - disabled */}
                   <Label
                     htmlFor="crypto"
-                    className="flex items-center gap-2 border rounded-md p-3 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                    className={clsx(
+                      "flex items-center gap-2 border rounded-md p-3 cursor-not-allowed opacity-50"
+                    )}
                   >
-                    <RadioGroupItem id="crypto" value="crypto" />
+                    <RadioGroupItem id="crypto" value="crypto" disabled />
                     <Coins className="h-4 w-4 text-muted-foreground" />
-                    Crypto
+                    Crypto (Disabled)
                   </Label>
                 </RadioGroup>
               </div>
+
 
               {/* Bank form */}
               {method === "bank" && (
@@ -306,40 +329,21 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="holderName">Account Holder Name</Label>
-                      <Input
-                        id="holderName"
-                        value={holderName}
-                        onChange={(e) => setHolderName(e.target.value)}
-                        required
-                      />
+                      <Input id="holderName" value={holderName} onChange={(e) => setHolderName(e.target.value)} required />
                     </div>
                     <div>
                       <Label htmlFor="accountNumber">Account Number</Label>
-                      <Input
-                        id="accountNumber"
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value)}
-                        required
-                      />
+                      <Input id="accountNumber" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} required />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="bankName">Bank Name</Label>
-                      <Input
-                        id="bankName"
-                        value={bankName}
-                        onChange={(e) => setBankName(e.target.value)}
-                        required
-                      />
+                      <Input id="bankName" value={bankName} onChange={(e) => setBankName(e.target.value)} required />
                     </div>
                     <div>
                       <Label htmlFor="branchName">Branch Name</Label>
-                      <Input
-                        id="branchName"
-                        value={branchName}
-                        onChange={(e) => setBranchName(e.target.value)}
-                      />
+                      <Input id="branchName" value={branchName} onChange={(e) => setBranchName(e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -385,13 +389,7 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
 
                   <div>
                     <Label htmlFor="phoneNumber">Phone Number</Label>
-                    <Input
-                      id="phoneNumber"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="e.g., 01700000000"
-                      required
-                    />
+                    <Input id="phoneNumber" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="e.g., 01700000000" required />
                   </div>
                 </div>
               )}
@@ -429,18 +427,12 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
                   </div>
 
                   <div>
-                    <Label htmlFor="cryptoId">
-                      {cryptoMethod === "trc20" ? "TRC20 ID" : "Pay ID"}
-                    </Label>
+                    <Label htmlFor="cryptoId">{cryptoMethod === "trc20" ? "TRC20 ID" : "Pay ID"}</Label>
                     <Input
                       id="cryptoId"
                       value={cryptoId}
                       onChange={(e) => setCryptoId(e.target.value)}
-                      placeholder={
-                        cryptoMethod === "trc20"
-                          ? "e.g., Txxxxxxxxxxxxxxxxxxxx"
-                          : "e.g., 123456789 / user@example.com"
-                      }
+                      placeholder={cryptoMethod === "trc20" ? "e.g., Txxxxxxxxxxxxxxxxxxxx" : "e.g., 123456789 / user@example.com"}
                       required
                     />
                   </div>
@@ -448,13 +440,9 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
               )}
 
               {/* Primary & Preview */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
                 <div className="flex items-center gap-2">
-                  <Switch
-                    checked={makePrimary}
-                    onCheckedChange={setMakePrimary}
-                    id="makePrimary"
-                  />
+                  <Switch checked={makePrimary} onCheckedChange={setMakePrimary} id="makePrimary" />
                   <Label htmlFor="makePrimary">Make Primary</Label>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -475,18 +463,82 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
               </div>
 
               <DialogFooter className="gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-customViolet">
-                  Save Method
+                <Button type="submit" disabled={submitting || saveDisabled} className="bg-customViolet rounded-xl">
+                  {submitting ? "Saving..." : "Save Method"}
                 </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <PaymentMethodsList data={data} />
+
+      {/* List */}
+      <Suspense fallback={<PaymentMethodsSkeleton/>}>
+        <PaymentMethodsList data={data} />
+      </Suspense>
+
+      {/* Numbered Pagination */}
+      {/*       <div className="flex items-center justify-center sm:justify-between py-4 px-4">
+        <div className="hidden sm:block" />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={!canPrev}
+            className="rounded-xl"
+          >
+            Previous
+          </Button>
+
+          {pages[0] !== 1 && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => goToPage(1)} className="rounded-xl">
+                1
+              </Button>
+              {pages[0] > 2 && <span className="px-1">…</span>}
+            </>
+          )}
+
+          {pages.map((p) => (
+            <Button
+              key={p}
+              variant={p === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => goToPage(p)}
+              className={clsx(
+                "rounded-xl",
+                p === currentPage && "bg-customViolet text-white hover:bg-customViolet/90"
+              )}
+            >
+              {p}
+            </Button>
+          ))}
+
+          {pages[pages.length - 1] !== totalPages && (
+            <>
+              {pages[pages.length - 1] < totalPages - 1 && <span className="px-1">…</span>}
+              <Button variant="outline" size="sm" onClick={() => goToPage(totalPages)} className="rounded-xl">
+                {totalPages}
+              </Button>
+            </>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={!canNext}
+            className="rounded-xl"
+          >
+            Next
+          </Button>
+        </div>
+        <div className="hidden sm:block" />
+      </div> */}
     </Card>
   );
 };

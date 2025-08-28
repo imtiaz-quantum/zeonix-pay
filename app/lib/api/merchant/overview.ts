@@ -12,7 +12,7 @@ export async function getOverview() {
 
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}/u/wallet/wallet-overview/`, {
+    res = await fetch(`${baseUrl}/u/wallet/wallet-overview/?page_size=10`, {
       headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
       cache: 'force-cache',
     });

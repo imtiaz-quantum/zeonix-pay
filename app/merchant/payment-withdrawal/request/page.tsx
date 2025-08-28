@@ -20,7 +20,7 @@ const Page = async () => {
 
   return (
     <Card>
-      <CardHeader className="flex items-center justify-between gap-4">
+      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <CardTitle className="font-headline">Request Withdrawal</CardTitle>
           <CardDescription>Transfer funds from your FlowPanel account.</CardDescription>

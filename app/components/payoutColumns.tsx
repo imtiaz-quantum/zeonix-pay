@@ -31,12 +31,12 @@ export type Payout = {
 }
 
 // ---------- Helpers ----------
-const statusVariant = (s: string): "default" | "secondary" | "destructive" => {
-  const x = (s || "").toLowerCase()
-  if (["success", "completed", "paid"].includes(x)) return "default"
-  if (["pending", "processing"].includes(x)) return "secondary"
-  return "destructive"
-}
+const statusBg = (s: string) => {
+  const x = (s || "").toLowerCase();
+  if (["success", "active", "completed", "paid"].includes(x)) return "bg-green-600";
+  if (["pending", "processing"].includes(x)) return "bg-orange-400";
+  return "bg-red-600"; // failed / rejected / others
+};
 
 const maskLast4 = (v?: string) => (v ? `**** ${v.slice(-4)}` : "****")
 
@@ -131,7 +131,7 @@ export const payoutColumns: ColumnDef<Payout>[] = [
     ),
     cell: ({ row }) => {
       const s = (row.getValue("status") as string) ?? ""
-      return <Badge variant={statusVariant(s)} className="capitalize">{s}</Badge>
+      return <Badge className={`capitalize ${statusBg(s)}`}>{s}</Badge>
     },
     filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
@@ -149,7 +149,7 @@ export const payoutColumns: ColumnDef<Payout>[] = [
       return <div>{isNaN(d.getTime()) ? iso : d.toLocaleString()}</div>
     },
   },
-  {
+/*   {
     id: "actions",
     header: () => <div className="text-right font-semibold">Actions</div>,
     enableHiding: false,
@@ -180,5 +180,5 @@ export const payoutColumns: ColumnDef<Payout>[] = [
         </div>
       )
     },
-  },
+  }, */
 ]

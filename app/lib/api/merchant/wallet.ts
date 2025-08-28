@@ -1,23 +1,35 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../authOptions";
+import { redirect } from "next/navigation";
 import { getAccessToken } from "../../getToken";
 
-export async function getWalletTransactions() {
-
-  const baseUrl = process.env.BASE_URL;
+export async function getWalletTransactions(page = 1) {
   const session = await getServerSession(authOptions);
   const token = getAccessToken(session);
-
   if (!token) throw new Error("Not authenticated");
 
-  const res = await fetch(`${baseUrl}/u/wallet/wallet-transaction/`, {
-    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-    cache: 'force-cache',
-  });
+  const baseUrl = process.env.BASE_URL; // e.g. https://api.zeonixpay.com/api/v1
+  const url = `${baseUrl}/u/wallet/wallet-transaction/?page=${page}&page_size=10`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    });
+  } catch (e) {
+    console.error("[getDepositList] upstream fetch failed", e);
+    redirect("/server-down");
+  }
 
   if (!res.ok) {
+    if (res.status >= 500) {
+      console.error("[getDepositList] upstream 5xx", res.status);
+      redirect("/server-down");
+    }
     const text = await res.text().catch(() => "");
-    throw new Error(`Upstream failed: ${res.status} ${res.statusText} ${text}`);
+    throw new Error(`Failed to fetch deposits: ${res.status} ${res.statusText} ${text}`);
   }
+
+  // { status, count, next, previous, data: [...] }
   return res.json();
 }

@@ -9,7 +9,7 @@ export async function getPayoutList(page = 1) {
   if (!token) throw new Error("Not authenticated");
 
   const baseUrl = process.env.BASE_URL; // e.g. https://api.zeonixpay.com/api/v1
-  const url = `${baseUrl}/u/wallet/pay-outs/?page=${page}`;
+  const url = `${baseUrl}/u/wallet/pay-outs/?page=${page}&page_size=10`;
 
   let res: Response;
   try {

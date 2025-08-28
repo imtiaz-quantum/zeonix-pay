@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ColumnDef } from "@tanstack/react-table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import * as React from "react";
+import { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,92 +11,122 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ArrowUpDown, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
+import { ArrowUpDown, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
-export type Deposit = {
-  id: number
-  invoice_payment_id: string
-  data: { key: string; code: string }
-  method_payment_id: string
-  customer_order_id: string
-  customer_name: string
-  customer_number: string
-  customer_amount: string
-  customer_email: string
-  customer_address: string
-  customer_description: string | null
-  method: string            // e.g. "bkash"
-  status: string            // e.g. "active" | "inactive" | "pending"
-  pay_status: string        // e.g. "paid" | "unpaid" | "failed"
-  transaction_id: string
-  invoice_trxn: string
-  extras: unknown | null
-  created_at: string
-  merchant: number
-}
+// ===== Types (match your API shape) =====
+export type Ledger = {
+  id: number;
+  store_name: string;
+  ip_address: string | null;
+  object_id: number;
+  amount: string;            // "5.00"
+  fee: string;               // "0.50"
+  net_amount: string;        // "4.50"
+  previous_balance: string;  // "593.00"
+  current_balance: string;   // "598.00"
+  method: string;            // "bkash"
+  status: string;            // "success" | "pending" | "failed" | etc
+  created_at: string;        // ISO
+  trx_id: string;            // "CHR90NBI43"
+  trx_uuid: string;
+  tran_type: string;         // "credit" | "debit"
+  wallet: number;
+  merchant: number;
+  content_type: number;
+};
 
+// ===== Helpers =====
+const formatBDT = (val: unknown) => {
+  const n = typeof val === "string" ? parseFloat(val) : Number(val);
+  if (!isFinite(n)) return String(val ?? "");
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "BDT" }).format(n);
+};
 
 const statusBg = (s: string) => {
   const x = (s || "").toLowerCase();
-  if (["success", "active", "completed", "paid"].includes(x)) return "bg-green-600";
+  if (["success", "active", "completed"].includes(x)) return "bg-green-600";
   if (["pending", "processing"].includes(x)) return "bg-orange-400";
   return "bg-red-600"; // failed / rejected / others
 };
 
-export const depositColumns: ColumnDef<Deposit>[] = [
+const typeBg = (t: string) => {
+  const x = (t || "").toLowerCase();
+  if (x === "credit") return "bg-emerald-600";
+  if (x === "debit") return "bg-rose-600";
+  return "bg-gray-400";
+};
+
+// ===== Columns =====
+export const ledgerColumns: ColumnDef<Ledger>[] = [
   {
-    accessorKey: "transaction_id",
+    accessorKey: "trx_id",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
         Transaction ID
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div className="font-medium">{row.getValue("transaction_id") as string}</div>,
+    cell: ({ row }) => <div className="font-medium">{row.getValue("trx_id") as string}</div>,
   },
-/*   {
-    accessorKey: "invoice_payment_id",
-    header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Invoice Payment ID
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-  }, */
   {
-    accessorKey: "customer_name",
+    accessorKey: "store_name",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Customer
+        Store
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
   },
   {
-    accessorKey: "customer_number",
+    accessorKey: "previous_balance",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Number
+        Prev Balance
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
+    cell: ({ row }) => <div>{formatBDT(row.getValue("previous_balance"))}</div>,
   },
   {
-    accessorKey: "customer_amount",
+    accessorKey: "amount",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
         Amount
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("customer_amount"))
-      const formatted = isFinite(amount)
-        ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'BDT' }).format(amount)
-        : row.getValue("customer_amount")
-      return <div className="text-left font-medium">{formatted as string}</div>
-    },
+    cell: ({ row }) => <div className="font-medium">{formatBDT(row.getValue("amount"))}</div>,
+  },
+  {
+    accessorKey: "fee",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Fee
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => <div>{formatBDT(row.getValue("fee"))}</div>,
+  },
+  {
+    accessorKey: "net_amount",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Net Amount
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => <div className="font-medium">{formatBDT(row.getValue("net_amount"))}</div>,
+  },
+  {
+    accessorKey: "current_balance",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Current Balance
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => <div className="font-medium">{formatBDT(row.getValue("current_balance"))}</div>,
   },
   {
     accessorKey: "method",
@@ -108,34 +138,6 @@ export const depositColumns: ColumnDef<Deposit>[] = [
     ),
     cell: ({ row }) => <div className="capitalize">{row.getValue("method") as string}</div>,
   },
-/*   {
-    accessorKey: "status",
-    header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Status
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-      const s = (row.getValue("status") as string) ?? ""
-      return <Badge variant={statusVariant(s)} className="capitalize">{s}</Badge>
-    },
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
-  }, */
-  {
-    accessorKey: "pay_status",
-    header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Pay Status
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-      const s = (row.getValue("pay_status") as string) ?? ""
-      return <Badge className={`capitalize ${statusBg(s)}`}>{s}</Badge>
-    },
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
-  },
   {
     accessorKey: "created_at",
     header: ({ column }) => (
@@ -145,17 +147,53 @@ export const depositColumns: ColumnDef<Deposit>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const iso = row.getValue("created_at") as string
-      const d = new Date(iso)
-      return <div>{isNaN(d.getTime()) ? iso : d.toLocaleString()}</div>
+      const iso = row.getValue("created_at") as string;
+      const d = new Date(iso);
+      return <div>{isNaN(d.getTime()) ? iso : d.toLocaleString()}</div>;
     },
+  },
+  {
+    accessorKey: "tran_type",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Type
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const t = (row.getValue("tran_type") as string) ?? "";
+      return (
+        <Badge className={`capitalize ${typeBg(t)}`}>
+          {t}
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => value.includes(row.getValue(id)),
+  },
+  {
+    accessorKey: "status",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Status
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const s = (row.getValue("status") as string) ?? "";
+      return (
+        <Badge className={`capitalize ${statusBg(s)}`}>
+          {s}
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
 /*   {
     id: "actions",
     header: () => <div className="text-right font-semibold">Actions</div>,
     enableHiding: false,
     cell: ({ row }) => {
-      const rowData = row.original
+      const rowData = row.original;
       return (
         <div className="text-right">
           <DropdownMenu>
@@ -179,7 +217,7 @@ export const depositColumns: ColumnDef<Deposit>[] = [
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      )
+      );
     },
   }, */
-]
+];
