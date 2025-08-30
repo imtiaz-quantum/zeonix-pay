@@ -45,15 +45,24 @@ const statusBg = (s: string) => {
 };
 
 export const depositColumns: ColumnDef<Deposit>[] = [
-  {
-    accessorKey: "transaction_id",
+    {
+    accessorKey: "customer_name",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Transaction ID
+        Customer
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div className="font-medium">{row.getValue("transaction_id") as string}</div>,
+  },
+    {
+    accessorKey: "method",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Method
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => <div className="capitalize">{row.getValue("method") as string}</div>,
   },
 /*   {
     accessorKey: "invoice_payment_id",
@@ -64,15 +73,6 @@ export const depositColumns: ColumnDef<Deposit>[] = [
       </Button>
     ),
   }, */
-  {
-    accessorKey: "customer_name",
-    header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Customer
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-  },
   {
     accessorKey: "customer_number",
     header: ({ column }) => (
@@ -99,14 +99,14 @@ export const depositColumns: ColumnDef<Deposit>[] = [
     },
   },
   {
-    accessorKey: "method",
+    accessorKey: "transaction_id",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Method
+        Transaction ID
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div className="capitalize">{row.getValue("method") as string}</div>,
+    cell: ({ row }) => <div className="font-medium">{row.getValue("transaction_id") as string}</div>,
   },
 /*   {
     accessorKey: "status",

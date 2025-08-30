@@ -31,7 +31,7 @@ const StatCards: React.FC<DynamicTableProps> = ({ statsCardsPromise }) => {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        title="Completed Withdrawals"
+        title="All Deposit"
         amount={data.total_withdraw}
         subtitle="Last month $24,000.00"
         change="95%"
@@ -42,7 +42,7 @@ const StatCards: React.FC<DynamicTableProps> = ({ statsCardsPromise }) => {
         iconColor="text-white"
       />
       <StatCard
-        title="Pending Withdrawals"
+        title="Pending Deposit"
         amount={data.withdraw_processing}
         subtitle="Last month $1,600.00"
         change="95%"
@@ -53,7 +53,7 @@ const StatCards: React.FC<DynamicTableProps> = ({ statsCardsPromise }) => {
         iconColor="text-white"
       />
       <StatCard
-        title="Failed Withdrawals"
+        title="All Payouts"
         amount={data.failedWithdrawals?? "0.00"}
         subtitle="Last month $24,000.00"
         change="70%"
@@ -64,7 +64,7 @@ const StatCards: React.FC<DynamicTableProps> = ({ statsCardsPromise }) => {
         iconColor="text-white"
       />
       <StatCard
-        title="Total Balance"
+        title="Pending Payouts"
         amount={data.balance}
         subtitle="Last month $2,500.00"
         change="95%"

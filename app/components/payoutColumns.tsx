@@ -50,6 +50,46 @@ const formatBDT = (raw: string) => {
 // ---------- Columns ----------
 export const payoutColumns: ColumnDef<Payout>[] = [
   {
+    id: "receiver",
+    header: "Receiver",
+    cell: ({ row }) => {
+      const name = row.original.receiver_name
+      const number = row.original.receiver_number
+      return (
+        <div className="space-y-0.5">
+          <div className="font-medium">{name}</div>
+          <div className="text-xs text-muted-foreground">{number}</div>
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: "payment_method",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Method
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const m = (row.getValue("payment_method") as string) || ""
+      return <div className="capitalize">{m}</div>
+    },
+    filterFn: (row, id, value) => value.includes(row.getValue(id)),
+  },
+  {
+    accessorKey: "amount",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Amount
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <div className="text-left font-medium">{formatBDT(row.getValue("amount") as string)}</div>
+    ),
+  },
+  {
     accessorKey: "trx_id",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
@@ -67,46 +107,6 @@ export const payoutColumns: ColumnDef<Payout>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-  },
-  {
-    id: "receiver",
-    header: "Receiver",
-    cell: ({ row }) => {
-      const name = row.original.receiver_name
-      const number = row.original.receiver_number
-      return (
-        <div className="space-y-0.5">
-          <div className="font-medium">{name}</div>
-          <div className="text-xs text-muted-foreground">{number}</div>
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: "amount",
-    header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Amount
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => (
-      <div className="text-left font-medium">{formatBDT(row.getValue("amount") as string)}</div>
-    ),
-  },
-  {
-    accessorKey: "payment_method",
-    header: ({ column }) => (
-      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-        Method
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-      const m = (row.getValue("payment_method") as string) || ""
-      return <div className="capitalize">{m}</div>
-    },
-    filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
   {
     id: "payment_details",
