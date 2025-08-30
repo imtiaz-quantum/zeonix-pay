@@ -4,6 +4,7 @@ import ApiKeyCard from "@/app/components/merchant/setting/ApiKeyCard";
 import ProfileCard from "@/app/components/merchant/setting/ProfileCard";
 import { getApiKey } from "@/app/lib/api/merchant/apiKey";
 import { getMerchantProfile, getProfile } from "@/app/lib/api/merchant/profile";
+import ZeonixPayCard from "@/components/ui/zeonixpay-card";
 
 
 export default async function MerchantProfilePage() {
@@ -20,6 +21,7 @@ console.log(profileData);
       <ApiKeyCard
         apiKey={apiData}
       />
+      <ZeonixPayCard/>
     </div>
   );
 }

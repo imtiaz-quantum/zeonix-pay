@@ -367,8 +367,6 @@ export default async function Page() {
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
-import { getDepositList } from "@/app/lib/api/merchant/deposite";
-import DepositTable from "@/app/components/merchant/deposit/DepositTable";
 import { Suspense } from "react";
 import DepositTableSkeleton from "@/app/components/skeletons/DepositTableSkeleton";
 import { getPayoutList } from "@/app/lib/api/merchant/payout";

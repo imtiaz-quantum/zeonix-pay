@@ -15,8 +15,9 @@ export default function WithOutLayout({
   const pathname = usePathname();
 
   const isDashboardPath = pathname.startsWith("/admin") || pathname.startsWith("/merchant");
+console.log(pathname);
 
-  return isDashboardPath
+  return isDashboardPath &&  !(pathname === "/merchant/api-docs")
     ? <CustomLayout role={role} balance={balance}>{children}</CustomLayout>
     : children;
 }
