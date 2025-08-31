@@ -334,7 +334,7 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
             maxLength={80}
           />
           {/* Domain (url) */}
-          <Field
+          {/*    <Field
             icon={<Globe2 className="h-4 w-4 text-slate-500" />}
             label="Domain"
             value={isEditing ? newDomain : data.domain_name}
@@ -342,6 +342,12 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
             isEditable={isEditing}
             inputType="url"
             placeholder="https://example.com"
+            pattern="^https?://.+$"
+          /> */}
+          <Field
+            icon={<Globe2 className="h-4 w-4 text-slate-500" />}
+            label="Domain"
+            value={data.domain_name}
             pattern="^https?://.+$"
           />
           {/* WhatsApp (tel) */}

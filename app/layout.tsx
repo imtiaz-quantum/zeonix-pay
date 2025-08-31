@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "./lib/authOptions";
 import Providers from "./providers";
 import { getOverview } from "./lib/api/merchant/overview";
+import { getMerchantProfile } from "./lib/api/merchant/profile";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +20,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// app/layout.js or pages/_app.js
+
 const roboto = Roboto({
   weight: ['400', '700'], // Specify desired weights, e.g., regular and bold
   subsets: ['latin'], // Specify character subsets for smaller file size
@@ -39,12 +40,17 @@ export default async function RootLayout({
 }>) {
   const role = await getUserRole();
   const session = await getServerSession(authOptions);
-  let balance = "100445"; 
+  let balance = "100445";
+  let profileData = null;
 
   if (role === "merchant") {
     const { data } = await getOverview();
     balance = data.balance;
+    const { data: MProfileData } = await getMerchantProfile();
+    profileData = MProfileData;
   }
+  console.log(profileData);
+  
   console.log(role !== null);
   console.log(role);
 
@@ -55,7 +61,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >  <Providers session={session}>
-          <WithOutLayout role={role ?? undefined} balance={balance}> {children}</WithOutLayout>
+          <WithOutLayout role={role ?? undefined} balance={balance} profileData={profileData}> {children}</WithOutLayout>
           <Toaster position="bottom-right" />
         </Providers>
 

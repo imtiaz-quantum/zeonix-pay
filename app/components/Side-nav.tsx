@@ -81,7 +81,7 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
         { href: "/admin/payout", icon: Send, label: "Payout" },
         { href: "/admin/payment-withdrawal", icon: Landmark, label: "Payment Withdrawal" },
         { href: "/merchant/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
-        { href: "/admin/settings", icon: Settings, label: "Settings" },
+   /*      { href: "/admin/settings", icon: Settings, label: "Settings" }, */
       ];
     } else if (role === "staff") {
       return [
@@ -196,50 +196,51 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
               </div>
             )}
           </div>
-          <TooltipProvider>
-            {collapsed ? (
-              // Collapsed: show a round icon that reveals balance on hover
-              <div className="px-2 mb-3">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      className="w-12 h-12 rounded-xl bg-gray-50 hover:bg-gray-100 border flex items-center justify-center shadow-sm"
-                      aria-label="Show balance"
-                    >
-                      <Wallet className="h-5 w-5 text-gray-700" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="text-sm">
-                    <div className="text-gray-500">Balance</div>
-                    <div className="font-semibold text-white">{formattedBalance}</div>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            ) : (
-              // Expanded: show a compact card with eye-toggle
-              <div className="mx-3 mb-3 rounded-xl border bg-white shadow-sm px-3 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center rounded-lg bg-gray-100 w-8 h-8">
-                    <Wallet className="h-4 w-4 text-gray-700" />
-                  </span>
-                  <div className="leading-tight">
-                    <div className="text-xs text-gray-500">Balance</div>
-                    <div className="font-semibold text-gray-900">
-                      {showBalance ? formattedBalance : "•••••••"}
+          {role !== "admin" &&
+            <TooltipProvider>
+              {collapsed ? (
+                // Collapsed: show a round icon that reveals balance on hover
+                <div className="px-2 mb-3">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="w-12 h-12 rounded-xl bg-gray-50 hover:bg-gray-100 border flex items-center justify-center shadow-sm"
+                        aria-label="Show balance"
+                      >
+                        <Wallet className="h-5 w-5 text-gray-700" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="text-sm">
+                      <div className="text-gray-500">Balance</div>
+                      <div className="font-semibold text-white">{formattedBalance}</div>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              ) : (
+                // Expanded: show a compact card with eye-toggle
+                <div className="mx-3 mb-3 rounded-xl border bg-white shadow-sm px-3 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center rounded-lg bg-gray-100 w-8 h-8">
+                      <Wallet className="h-4 w-4 text-gray-700" />
+                    </span>
+                    <div className="leading-tight">
+                      <div className="text-xs text-gray-500">Balance</div>
+                      <div className="font-semibold text-gray-900">
+                        {showBalance ? formattedBalance : "•••••••"}
+                      </div>
                     </div>
                   </div>
+                  <button
+                    onClick={() => setShowBalance((s) => !s)}
+                    className="p-2 rounded-md hover:bg-gray-50 text-gray-600"
+                    aria-label={showBalance ? "Hide balance" : "Show balance"}
+                  >
+                    {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowBalance((s) => !s)}
-                  className="p-2 rounded-md hover:bg-gray-50 text-gray-600"
-                  aria-label={showBalance ? "Hide balance" : "Show balance"}
-                >
-                  {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            )}
-          </TooltipProvider>
-
+              )}
+            </TooltipProvider>
+          }
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto">
             <ul className="space-y-1 px-2">

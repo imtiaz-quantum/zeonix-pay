@@ -41,7 +41,7 @@ export const StatCard = ({
       </CardHeader>
       <CardContent className="space-y-1">
         <div className="text-2xl font-bold text-gray-900">BDT{amount}</div>
-        <div className="flex items-center text-xs text-gray-700 gap-2">
+  {/*       <div className="flex items-center text-xs text-gray-700 gap-2">
           <div
             className={`flex items-center px-2 py-0.5 rounded-full text-white text-[10px] font-medium ${
               positive ? "bg-green-500/60" : "bg-red-500/60"
@@ -51,7 +51,7 @@ export const StatCard = ({
             {change}
           </div>
           <span>{subtitle}</span>
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   );

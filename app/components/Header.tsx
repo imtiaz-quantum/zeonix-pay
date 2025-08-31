@@ -24,52 +24,86 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react";
+import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-type SideNavProps = {
-  collapsed: boolean;
-  toggleSidebar: () => void;
-  role?: 'admin' | 'merchant' | 'staff';
+// Keep this in a shared types file if possible
+export type BrandInfo = {
+  brand_name: string;
+  whatsapp_number: string | null;
+  domain_name: string | null;
+  brand_logo: string;
+  status: "Active" | "Inactive";
+  fees_type: "Parcentage" | "Flat";
+  fees: string;
+  is_active: boolean;
 };
 
-export function Header({ role, collapsed, toggleSidebar }: SideNavProps) {
+type Role = "admin" | "merchant" | "staff";
+
+type HeaderProps = {
+  collapsed: boolean;
+  toggleSidebar: () => void;
+  role?: Role;
+  profileData?: BrandInfo | null;
+};
+
+export function Header({ role, collapsed, toggleSidebar, profileData }: HeaderProps) {
   const pathname = usePathname();
-  const pageTitle =
-    pathname.split("/").pop()?.replace(/-/g, " ") || "Dashboard";
-    const router = useRouter();
+  const router = useRouter();
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+
+  // page title from path segment
+  const last = pathname.split("/").filter(Boolean).pop() ?? "dashboard";
+  const pageTitle = decodeURIComponent(last).replace(/-/g, " ").replace(/^\w/, c => c.toUpperCase());
 
   const handleLogout = () => {
-    const redirectMap: Record<string, string> = {
-      admin: '/login/admin',
-      merchant: '/login/merchant',
+    const redirectMap: Record<Role, string> = {
+      admin: "/login/admin",
+      merchant: "/login/merchant",
+      staff: "/login/staff",
     };
-    signOut({ callbackUrl: redirectMap[role || 'merchant'] });
+    const fallback = "/login";
+    signOut({ callbackUrl: role ? redirectMap[role] : fallback });
   };
-
 
   const handleClick = () => {
-    const url = `/${role}/profile`;
-    router.push(url);
+    // Default to merchant profile if role missing; adjust as desired
+    const safeRole = role ?? "merchant";
+    router.push(`/${safeRole}/profile`);
   };
 
+  const handleClickSetting = () => {
+    // Default to merchant profile if role missing; adjust as desired
+    const safeRole = role ?? "merchant";
+    router.push(`/${safeRole}/settings`);
+  };
+  console.log(profileData)
+  const avatarSrc = profileData?.brand_logo || "";
+  const avatarFallback =
+    (profileData?.brand_name?.[0] ?? "U").toUpperCase();
+console.log(role)
   return (
-    <header className={`flex h-14 items-center justify-between gap-4 border-b bg-card px-4 lg:h-[70px] lg:px-6 sticky top-0 z-30 ${collapsed ? 'lg:ml-20' : 'lg:ml-64'} transition-all duration-300 ease-in-out`} >
-      <div className="flex gap-2 items-center justify-center">
-        {/* Toggle Button for Mobile */}
+    <header
+      className={`flex h-14 items-center justify-between gap-4 border-b bg-card px-4 lg:h-[70px] lg:px-6 sticky top-0 z-30 ${collapsed ? "lg:ml-20" : "lg:ml-64"
+        } transition-all duration-300 ease-in-out`}
+    >
+      <div className="flex gap-2 items-center">
         <button
           onClick={toggleSidebar}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="ml-auto text-gray-500 hover:text-primary"
         >
-          {collapsed ? (
-            <ChevronRight size={20} />
-          ) : (
-            <ChevronLeft size={20} />
-          )}
+          {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
         <h1 className="text-lg font-semibold md:text-2xl capitalize font-headline">
           {pageTitle}
         </h1>
       </div>
+
       <div className="flex items-center gap-4">
+        {/* Uncomment if you want search/notifications
         <form className="relative hidden md:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -82,23 +116,36 @@ export function Header({ role, collapsed, toggleSidebar }: SideNavProps) {
           <Bell className="h-5 w-5" />
           <span className="sr-only">Toggle notifications</span>
         </Button>
+        */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="https://placehold.co/40x40.png" alt="User" />
-                <AvatarFallback>U</AvatarFallback>
+              <Avatar className="h-8 w-8 relative">
+                {!imgLoaded && (
+                  <Skeleton className="absolute inset-0 h-8 w-8 rounded-full" />
+                )}
+
+                <AvatarImage
+                  src={avatarSrc || "https://placehold.co/40x40.png"}
+                  alt={profileData?.brand_name ?? "User"}
+                  // Radix-specific: "idle" | "loading" | "loaded"
+                  onLoadingStatusChange={(status) => setImgLoaded(status === "loaded")}
+                  className={`h-8 w-8 transition-opacity duration-200 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+                />
+
+                {/*           <AvatarFallback>{avatarFallback}</AvatarFallback> */}
               </Avatar>
               <span className="sr-only">Toggle user menu</span>
             </Button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Admin</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  admin@flowpanel.com
+                <p className="text-sm font-medium leading-none">
+                  {profileData?.brand_name ?? "User"}
                 </p>
+                {/* Add email/role here if available */}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -107,14 +154,16 @@ export function Header({ role, collapsed, toggleSidebar }: SideNavProps) {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              {/*               <DropdownMenuItem>
                 <CreditCard className="mr-2 h-4 w-4" />
                 <span>Billing</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
+              {role !== "admin" &&
+                <DropdownMenuItem onClick={handleClickSetting}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+              }
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

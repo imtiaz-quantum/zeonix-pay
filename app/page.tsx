@@ -53,6 +53,7 @@ import {
 import { IoLogoWhatsapp } from "react-icons/io";
 import { FaFacebookMessenger } from "react-icons/fa";
 import Image from "next/image";
+import Link from "next/link";
 
 const BRAND = {
   primary: "#674cc4",
@@ -161,7 +162,7 @@ export default function PaymentGatewayLanding() {
           <nav className="hidden items-center gap-6 text-sm text-gray-700 md:flex">
             <a href="#features" className="hover:text-gray-900">Features</a>
             <a href="#pricing" className="hover:text-gray-900">Pricing</a>
-            <a href="#integrations" className="hover:text-gray-900">Integrationsss</a>
+            <a href="#integrations" className="hover:text-gray-900">Integrations</a>
             <a href="#faq" className="hover:text-gray-900">FAQ</a>
           </nav>
           <div className="flex items-center gap-3">
@@ -228,62 +229,24 @@ export default function PaymentGatewayLanding() {
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1, duration: 0.6 }} className="order-1 md:order-2">
-            <div className="relative">
-              <div className="absolute -inset-2 rounded-3xl" style={{ background: `linear-gradient(45deg, ${BRAND.primary}22, transparent)`, filter: "blur(8px)" }} />
-              <div className="relative rounded-3xl border border-gray-200 bg-white p-4 shadow-xl">
-                {/* Mock checkout */}
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Checkout</p>
-                      <p className="text-xs text-gray-600">PaySwift • BDT</p>
-                    </div>
-                    <Lock className="h-4 w-4" style={{ color: BRAND.primary }} />
-                  </div>
-                  <div className="mt-4 grid gap-3">
-                    <div className="grid gap-1">
-                      <label className="text-xs text-gray-700">Card number</label>
-                      <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2">
-                        <CreditCard className="h-4 w-4" style={{ color: BRAND.primary }} />
-                        <input className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400" placeholder="4242 4242 4242 4242" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="grid gap-1">
-                        <label className="text-xs text-gray-700">Expiry</label>
-                        <input className="rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none placeholder:text-gray-400" placeholder="MM/YY" />
-                      </div>
-                      <div className="grid gap-1">
-                        <label className="text-xs text-gray-700">CVC</label>
-                        <input className="rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none placeholder:text-gray-400" placeholder="CVC" />
-                      </div>
-                    </div>
-                    <button
-                      className="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white"
-                      style={{ backgroundColor: BRAND.primary }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = BRAND.primaryHover)}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = BRAND.primary)}
-                    >
-                      Pay BDT 2,499
-                    </button>
-                  </div>
-                </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs text-gray-600">
-                  <div className="rounded-xl border border-gray-200 bg-white p-2">
-                    <span className="font-medium text-gray-900">EMI</span> available
-                  </div>
-                  <div className="rounded-xl border border-gray-200 bg-white p-2">
-                    <span className="font-medium text-gray-900">Mobile</span> wallets
-                  </div>
-                  <div className="rounded-xl border border-gray-200 bg-white p-2">
-                    <span className="font-medium text-gray-900">3D Secure</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+            className="order-1 md:order-2"
+          >
+            <Image
+              src="/Home_page_illustration.png"
+              alt="Home page illustration"
+              width={600}   // adjust to your image’s natural size
+              height={400}  // adjust to your image’s natural size
+              className="w-full h-auto"
+            />
           </motion.div>
+
+
         </Container>
       </section>
 
@@ -380,7 +343,7 @@ export default function PaymentGatewayLanding() {
                   </span>
                 )}
                 <h3 className="text-lg font-semibold text-gray-900">{tier.name}</h3>
-                <p className="mt-2 text-2xl font-semibold text-gray-900">{tier.price}</p>
+          {/*       <p className="mt-2 text-2xl font-semibold text-gray-900">{tier.price}</p> */}
                 <ul className="mt-4 grid gap-2">
                   {tier.points.map((p) => (
                     <CheckItem key={p}>{p}</CheckItem>
@@ -503,18 +466,20 @@ export default function PaymentGatewayLanding() {
               <h3 className="text-2xl font-semibold tracking-tight text-gray-900">Ready to level‑up your checkout?</h3>
               <p className="mt-2 text-sm text-gray-600">Create an account in minutes. No credit card required.</p>
               <div className="flex gap-6 text-center justify-center mt-8">
-                <div
-                  className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2 shadow-sm transition hover:shadow-md hover:scale-105 cursor-pointer"
+                <Link
+                  href="https://wa.me/message/22AX4J6BAZF5K1"
+                  target="_blank"
+                  className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2 shadow-sm transition hover:shadow-md hover:scale-105"
                 >
                   <IoLogoWhatsapp className="text-green-500 text-2xl" />
-                  <span className="font-medium text-green-700">username</span>
-                </div>
-                <div
+                  <span className="font-medium text-green-700">+8801761-850000</span>
+                </Link>
+                {/*                 <div
                   className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2 shadow-sm transition hover:shadow-md hover:scale-105 cursor-pointer"
                 >
                   <FaFacebookMessenger className="text-blue-500 text-2xl" />
                   <span className="font-medium text-blue-700">username</span>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -529,7 +494,7 @@ export default function PaymentGatewayLanding() {
             <div className="grid h-8 w-8 place-items-center rounded-xl border border-gray-200 bg-white" style={{ color: BRAND.primary }}>
               <CreditCard className="h-4 w-4" />
             </div>
-            <span className="font-semibold">PaySwift BD</span>
+            <span className="font-semibold">ZeonixPay</span>
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <a href="#" className="hover:text-gray-900">Docs</a>
@@ -537,7 +502,7 @@ export default function PaymentGatewayLanding() {
             <a href="#" className="hover:text-gray-900">Security</a>
             <a href="#" className="hover:text-gray-900">Contact</a>
           </div>
-          <p className="text-xs">© {new Date().getFullYear()} PaySwift BD. All rights reserved.</p>
+          <p className="text-xs">© {new Date().getFullYear()} ZeonixPay. All rights reserved.</p>
         </Container>
       </footer>
     </div>

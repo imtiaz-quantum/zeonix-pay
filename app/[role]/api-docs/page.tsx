@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import Image from "next/image";
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
@@ -32,8 +32,8 @@ function Endpoint({
       <Badge
         variant="outline"
         className={
-          method === "POST" 
-            ? "bg-green-500/10 text-green-500 border-green-500/20" 
+          method === "POST"
+            ? "bg-green-500/10 text-green-500 border-green-500/20"
             : "bg-blue-500/10 text-blue-500 border-blue-500/20"
         }
       >
@@ -80,7 +80,7 @@ function Section({
 
 function CodeBlock({ code, language = "bash" }: { code: string; language?: string }) {
   const [copied, setCopied] = useState(false);
-  
+
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(code);
@@ -90,12 +90,12 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
       // no-op
     }
   };
-  
+
   return (
     <div className="relative">
-      <Button 
-        variant="outline" 
-        size="sm" 
+      <Button
+        variant="outline"
+        size="sm"
         className="absolute top-2 right-2 h-7 text-xs"
         onClick={onCopy}
       >
@@ -342,16 +342,13 @@ components:
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur border-b">
         <div className="container py-4">
-          <div className="flex items-center gap-3">
-            <div
-              aria-hidden
-              className="w-7 h-7 rounded-lg bg-[conic-gradient(at_top_left,_#6ee7b7,_#60a5fa)]"
-            />
+          <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-25">
+            <Image src="/zeonix-logo.png" width={200} height={32} alt="zeonix-logo" />
             <div>
               <h1 className="text-2xl font-bold leading-none tracking-tight">
-                ZeonixPay — Payment Gateway API
+                Payment Gateway API
               </h1>
-              <div className="text-sm text-muted-foreground mt-1">
+              <div className="text-sm text-muted-foreground mt-3">
                 Last updated: 2025-08-27 11:16 • Timezone: Asia/Dhaka
               </div>
             </div>
@@ -642,8 +639,8 @@ Content-Type: application/json`}
 
                 <Section id="callbacks" title="Callbacks">
                   <p className="text-muted-foreground">
-                    Provide a single <code>callback_url</code> for Create Payment. 
-                    Your server should accept status notifications for success, 
+                    Provide a single <code>callback_url</code> for Create Payment.
+                    Your server should accept status notifications for success,
                     failure, or cancel.
                   </p>
                   <Note>

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import ZeonixPayCard from "@/components/ui/zeonixpay-card";
 
 
 const demoData = {
@@ -25,7 +26,7 @@ const demoData = {
   email: "demo@gmail.com",
   phone_number: "01775155760",
   status: "Active",
-  role: 3,
+  role: "admin",
   pid: "be8e3258-0f53-4576-a006-bc48d2311d2a",
 };
 
@@ -86,7 +87,7 @@ function FieldRow({
   };
 
   return (
-    <div className={`flex items-start justify-between gap-4 py-3`}> 
+    <div className={`flex items-start justify-between gap-4 py-3`}>
       <div className="flex min-w-0 items-start gap-3 w-full">
         <Icon className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
         <div className="min-w-0 flex-1">
@@ -147,8 +148,8 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
     newData.status?.toLowerCase() === "active"
       ? "bg-green-50 text-green-700 ring-green-600/20"
       : newData.status?.toLowerCase() === "inactive"
-      ? "bg-gray-50 text-gray-700 ring-gray-600/20"
-      : "bg-amber-50 text-amber-700 ring-amber-600/20";
+        ? "bg-gray-50 text-gray-700 ring-gray-600/20"
+        : "bg-amber-50 text-amber-700 ring-amber-600/20";
 
   const handleCopy = (text: string) => navigator.clipboard.writeText(text);
 
@@ -158,34 +159,34 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
   };
 
   const allowed = [
-  "username",
-  "first_name",
-  "last_name",
-  "email",
-  "phone_number",
-  "status",
-] as const satisfies readonly EditableKeys[];
+    "username",
+    "first_name",
+    "last_name",
+    "email",
+    "phone_number",
+    "status",
+  ] as const satisfies readonly EditableKeys[];
 
-type Allowed = (typeof allowed)[number];
+  type Allowed = (typeof allowed)[number];
   // Compute diff of editable fields only
- function getChangedFields(
-  
-  original: ProfileData,
-  updated: ProfileData
-): Partial<Pick<ProfileData, Allowed>> {
-  // Record form makes assignment type-safe without `any`
-  const diff: Partial<Record<Allowed, ProfileData[Allowed]>> = {};
+  function getChangedFields(
 
-  for (const key of allowed) {
-    const before = original[key];
-    const after = updated[key];
-    if (after !== before) {
-      diff[key] = after;
+    original: ProfileData,
+    updated: ProfileData
+  ): Partial<Pick<ProfileData, Allowed>> {
+    // Record form makes assignment type-safe without `any`
+    const diff: Partial<Record<Allowed, ProfileData[Allowed]>> = {};
+
+    for (const key of allowed) {
+      const before = original[key];
+      const after = updated[key];
+      if (after !== before) {
+        diff[key] = after;
+      }
     }
-  }
 
-  return diff;
-}
+    return diff;
+  }
   const validate = () => {
     // quick client validations
     if (newData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newData.email)) {
@@ -202,13 +203,13 @@ type Allowed = (typeof allowed)[number];
     }
     return true;
   };
+  console.log(data);
 
   const handleSave = async () => {
     if (!validate()) return;
 
     const payload = getChangedFields(data, newData);
-    console.log(payload);
-    
+
     if (Object.keys(payload).length === 0) {
       toast("No changes to save");
       setIsEditing(false);
@@ -221,11 +222,11 @@ type Allowed = (typeof allowed)[number];
         fetch("/api/profile/update", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify( payload ), // ✅ send only changed fields
+          body: JSON.stringify(payload),
         }).then(async (r) => {
           if (!r.ok) throw new Error("Failed to update profile");
           console.log(r);
-          
+
           return r.json().catch(() => null);
         }),
         {
@@ -243,165 +244,166 @@ type Allowed = (typeof allowed)[number];
   };
 
   return (
-    
-      <div className="mx-auto  sm:px-6 lg:px-8">
-        {/* Header Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-indigo-100 to-indigo-200 text-lg font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-300">
-                {initials}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">{fullName}</h1>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <Badge className="bg-indigo-50 text-indigo-700 ring-indigo-600/20 flex items-center gap-1">
-                    <User className="h-3.5 w-3.5" />
-                    <span>@{newData.username}</span>
-                  </Badge>
-                  <Badge className={`${statusTone}`}>{newData.status ?? "Unknown"}</Badge>
-                  <Badge className="bg-gray-50 text-gray-700 ring-gray-500/20 flex items-center gap-1">
-                    <Shield className="h-3.5 w-3.5" />
-                    <span>Role: {newData.role}</span>
-                  </Badge>
-                </div>
+
+    <div className="mx-auto  sm:px-6 lg:px-8 space-y-6">
+      {/* Header Card */}
+      <div className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-indigo-100 to-indigo-200 text-lg font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-300">
+              {initials}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900">{fullName}</h1>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <Badge className="bg-indigo-50 text-indigo-700 ring-indigo-600/20 flex items-center gap-1">
+                  <User className="h-3.5 w-3.5" />
+                  <span>@{newData.username}</span>
+                </Badge>
+                <Badge className={`${statusTone}`}>{newData.status ?? "Unknown"}</Badge>
+                <Badge className="bg-gray-50 text-gray-700 ring-gray-500/20 flex items-center gap-1">
+                  <Shield className="h-3.5 w-3.5" />
+                  <span>Role: {newData.role}</span>
+                </Badge>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center gap-3">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setNewData(data); // revert
-                      setIsEditing(false);
-                    }}
-                    className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
-                  >
-                    <X className="h-4 w-4" /> Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-customViolet px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-customViolet/90 disabled:opacity-60"
-                  >
-                    <Save className="h-4 w-4" /> {isSaving ? "Saving..." : "Save"}
-                  </button>
-                </>
-              ) : (
+          <div className="flex items-center gap-3">
+            {isEditing ? (
+              <>
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-customViolet px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-customViolet/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
+                  onClick={() => {
+                    setNewData(data); // revert
+                    setIsEditing(false);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
                 >
-                  <Edit3 className="h-4 w-4" /> Edit Profile
+                  <X className="h-4 w-4" /> Cancel
                 </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Details Card */}
-        <div
-          className={`mt-6 overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-200 ${
-            isEditing ? "ring-violet-200" : ""
-          }`}
-        >
-          <div className="grid grid-cols-1 gap-2 space-x-6 md:grid-cols-2">
-            <FieldRow
-              icon={User}
-              label="First name"
-              value={newData.first_name}
-              onCopy={handleCopy}
-              isEditable={isEditing}
-              onChange={handleChange}
-              name="first_name"
-              placeholder="Enter first name"
-            />
-            <FieldRow
-              icon={User}
-              label="Last name"
-              value={newData.last_name}
-              onCopy={handleCopy}
-              isEditable={isEditing}
-              onChange={handleChange}
-              name="last_name"
-              placeholder="Enter last name"
-            />
-            <FieldRow
-              icon={Mail}
-              label="Email"
-              value={newData.email}
-              onCopy={handleCopy}
-              isEditable={isEditing}
-              onChange={handleChange}
-              name="email"
-              placeholder="name@example.com"
-            />
-            <FieldRow
-              icon={Phone}
-              label="Phone"
-              value={newData.phone_number}
-              onCopy={handleCopy}
-              isEditable={isEditing}
-              onChange={handleChange}
-              name="phone_number"
-              placeholder="e.g. 017********"
-            />
-            <FieldRow
-              icon={User}
-              label="Username"
-              value={newData.username}
-              onCopy={handleCopy}
-              isEditable={isEditing}
-              onChange={handleChange}
-              name="username"
-              placeholder="Choose a username"
-            />
-            <FieldRow
-              icon={BadgeCheck}
-              label="Status"
-              value={newData.status}
-              onCopy={handleCopy}
-              isEditable={isEditing}
-              onChange={handleChange}
-              name="status"
-              placeholder="Active / Inactive"
-            />
-            {/* Read-only rows */}
-            <FieldRow
-              icon={Shield}
-              label="Role"
-              value={newData.role}
-              isEditable={false}
-              name="role"
-            />
-            <FieldRow icon={Hash} label="User ID" value={newData.id} isEditable={false} name="id" />
-            <FieldRow icon={Hash} label="PID" value={newData.pid} isEditable={false} name="pid" />
-          </div>
-
-          {/* Sticky action bar for small screens while editing */}
-          {isEditing && (
-            <div className="pointer-events-auto sticky bottom-4 mt-6 flex items-center justify-end gap-3 rounded-2xl bg-white/80 p-3 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-customViolet px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-customViolet/90 disabled:opacity-60"
+                >
+                  <Save className="h-4 w-4" /> {isSaving ? "Saving..." : "Save"}
+                </button>
+              </>
+            ) : (
               <button
-                onClick={() => {
-                  setNewData(data);
-                  setIsEditing(false);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
+                onClick={() => setIsEditing(true)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-customViolet px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-customViolet/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
               >
-                <X className="h-4 w-4" /> Discard
+                <Edit3 className="h-4 w-4" /> Edit Profile
               </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="inline-flex items-center gap-2 rounded-xl bg-customViolet px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-customViolet/90 disabled:opacity-60"
-              >
-                <Save className="h-4 w-4" /> {isSaving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    
+
+      {/* Details Card */}
+      <div
+        className={` overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-200 ${isEditing ? "ring-violet-200" : ""
+          }`}
+      >
+        <div className="grid grid-cols-1 gap-2 space-x-6 md:grid-cols-2">
+          <FieldRow
+            icon={User}
+            label="First name"
+            value={newData.first_name}
+            onCopy={handleCopy}
+            isEditable={isEditing}
+            onChange={handleChange}
+            name="first_name"
+            placeholder="Enter first name"
+          />
+          <FieldRow
+            icon={User}
+            label="Last name"
+            value={newData.last_name}
+            onCopy={handleCopy}
+            isEditable={isEditing}
+            onChange={handleChange}
+            name="last_name"
+            placeholder="Enter last name"
+          />
+          <FieldRow
+            icon={Mail}
+            label="Email"
+            value={newData.email}
+            onCopy={handleCopy}
+            isEditable={isEditing}
+            onChange={handleChange}
+            name="email"
+            placeholder="name@example.com"
+          />
+          <FieldRow
+            icon={Phone}
+            label="Phone"
+            value={newData.phone_number}
+            onCopy={handleCopy}
+            isEditable={isEditing}
+            onChange={handleChange}
+            name="phone_number"
+            placeholder="e.g. 017********"
+          />
+          <FieldRow
+            icon={User}
+            label="Username"
+            value={newData.username}
+            onCopy={handleCopy}
+            isEditable={isEditing}
+            onChange={handleChange}
+            name="username"
+            placeholder="Choose a username"
+          />
+          <FieldRow
+            icon={BadgeCheck}
+            label="Status"
+            value={newData.status}
+            onCopy={handleCopy}
+            isEditable={isEditing}
+            onChange={handleChange}
+            name="status"
+            placeholder="Active / Inactive"
+          />
+          {/* Read-only rows */}
+          <FieldRow
+            icon={Shield}
+            label="Role"
+            value={newData.role}
+            isEditable={false}
+            name="role"
+          />
+          <FieldRow icon={Hash} label="User ID" value={newData.id} isEditable={false} name="id" />
+          <FieldRow icon={Hash} label="PID" value={newData.pid} isEditable={false} name="pid" />
+        </div>
+
+        {/* Sticky action bar for small screens while editing */}
+        {isEditing && (
+          <div className="pointer-events-auto sticky bottom-4 mt-6 flex items-center justify-end gap-3 rounded-2xl bg-white/80 p-3 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+            <button
+              onClick={() => {
+                setNewData(data);
+                setIsEditing(false);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
+            >
+              <X className="h-4 w-4" /> Discard
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 rounded-xl bg-customViolet px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-customViolet/90 disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" /> {isSaving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {data?.role === "Admin" && <ZeonixPayCard userRole="Admin"/>}
+    </div>
+
   );
 }

@@ -9,7 +9,7 @@ export async function getUserList(page = 1) {
   const token = getAccessToken(session);
   if (!token) throw new Error("Not authenticated");
 
-  const url = `${baseUrl}/admin/merchant/?page=${page}`;
+  const url = `${baseUrl}/admin/merchant/?page=${page}&page_size=10`;
 
   let res: Response;
   try {

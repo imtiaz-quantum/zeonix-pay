@@ -1,23 +1,47 @@
-"use client"
+"use client";
+
 import { usePathname } from "next/navigation";
 import CustomLayout from "./CustomLayout";
 import { ReactNode } from "react";
+
+// Reuse this where you also type API responses
+export type MerchantProfile = {
+  brand_name: string;
+  whatsapp_number: string | null;
+  domain_name: string | null;
+  brand_logo: string;
+  status: "Active" | "Inactive";
+  fees_type: "Parcentage" | "Flat";
+  fees: string;         
+  is_active: boolean;
+};
+
+type Role = "admin" | "merchant" | "staff";
+
+type WithOutLayoutProps = {
+  children: ReactNode;
+  role?: Role;
+  balance: string;             
+  profileData?: MerchantProfile | null;  
+};
 
 export default function WithOutLayout({
   children,
   role,
   balance,
-}: {
-  children: ReactNode;
-  role?: 'admin' | 'merchant' | 'staff';
-  balance: string;
-}) {
-  const pathname = usePathname();
+  profileData,
+}: WithOutLayoutProps) {
+  const pathname = usePathname(); 
 
-  const isDashboardPath = pathname.startsWith("/admin") || pathname.startsWith("/merchant");
-console.log(pathname);
+  // check is dashboard 
+  const isDashboardPath = /^\/(admin|merchant)(\/|$)/.test(pathname);
+  
 
-  return isDashboardPath &&  !(pathname === "/merchant/api-docs")
-    ? <CustomLayout role={role} balance={balance}>{children}</CustomLayout>
-    : children;
+  return isDashboardPath &&  !(pathname.includes("api-docs"))? (
+    <CustomLayout role={role} balance={balance} profileData={profileData?? null}>
+      {children}
+    </CustomLayout>
+  ) : (
+    children
+  );
 }
