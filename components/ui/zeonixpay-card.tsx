@@ -24,7 +24,7 @@ export default function ZeonixPayCard({ userRole }: Props) {
           <div className="p-2 bg-gray-100 rounded-lg">
             <Server className="h-6 w-6 text-[#674CC4]" />
           </div>
-          <CardTitle className="text-2xl font-bold">
+          <CardTitle className="text-md md:text-2xl font-bold">
             ZeonixPay — Payment Gateway API
           </CardTitle>
         </div>

@@ -1,21 +1,5 @@
-/* import { apiRequest } from "@/lib/apiRequest";
-import { NextResponse } from "next/server";
-
-
-export const dynamic = "force-dynamic";
-
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const { data, status } = await apiRequest(`/u/wallet/payment-methods/${params.id}/set-primary/`, {
-    method: "PATCH",
-  });
-  return NextResponse.json(data, { status });
-}
- */
-
 import { NextResponse } from "next/server";
 import { apiRequest } from "@/lib/apiRequest";
-
-
 export const dynamic = "force-dynamic";
 
 type Params = { id: string };

@@ -80,7 +80,7 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
         { href: "/admin/deposit", icon: ArrowRightLeft, label: "Deposit" },
         { href: "/admin/payout", icon: Send, label: "Payout" },
         { href: "/admin/payment-withdrawal", icon: Landmark, label: "Payment Withdrawal" },
-        { href: "/merchant/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
+        { href: "/admin/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
    /*      { href: "/admin/settings", icon: Settings, label: "Settings" }, */
       ];
     } else if (role === "staff") {
@@ -97,7 +97,7 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
             { href: "/staff/payment-withdrawal/methods", label: "Payment Methods" },
           ],
         },
-        { href: "/merchant/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
+        { href: "/staff/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
         { href: "/staff/settings", icon: Settings, label: "Settings" },
       ];
     } else if (role === "merchant") {

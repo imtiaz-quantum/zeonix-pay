@@ -5,10 +5,9 @@ type Params = { pid: string };
 
 
 export async function PATCH(req: Request, context: { params: Promise<Params> }) {
-
     const { pid } = await context.params;
     const payload = await req.json();
-        console.log("payloadddd", payload)
+
     const { data, status } = await apiRequest(`/admin/merchant/${pid}/`, {
         method: "PATCH",
         body: JSON.stringify(payload),

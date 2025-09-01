@@ -49,7 +49,7 @@ const formatBDT = (raw: string) => {
 
 // ---------- Columns ----------
 export const payoutColumns: ColumnDef<Payout>[] = [
-  {
+/*   {
     id: "receiver",
     header: "Receiver",
     cell: ({ row }) => {
@@ -62,6 +62,24 @@ export const payoutColumns: ColumnDef<Payout>[] = [
         </div>
       )
     },
+  }, */
+    {
+    accessorKey: "receiver_name",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Receiver name
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+  },
+    {
+    accessorKey: "receiver_number",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Receiver number
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
   },
   {
     accessorKey: "payment_method",

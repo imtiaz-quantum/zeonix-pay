@@ -370,7 +370,7 @@ import {
 import { Suspense } from "react";
 import DepositTableSkeleton from "@/app/components/skeletons/DepositTableSkeleton";
 import { getPayoutList } from "@/app/lib/api/merchant/payout";
-import PayoutTable from "@/app/components/PayoutTable";
+import PayoutTable from "@/app/components/payout/PayoutTable";
 
 type PageProps = {
   searchParams: Promise<{ page?: string }>; // Next 15: async

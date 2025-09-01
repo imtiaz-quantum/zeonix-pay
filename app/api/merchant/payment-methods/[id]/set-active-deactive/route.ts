@@ -1,18 +1,3 @@
-/* import { apiRequest } from "@/lib/apiRequest";
-import { NextResponse } from "next/server";
-
-
-export const dynamic = "force-dynamic";
-
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const { data, status } = await apiRequest(`/u/wallet/payment-methods/${params.id}/set-active-deactive/`, {
-    method: "PATCH",
-  });
-  return NextResponse.json(data, { status });
-}
- */
-
-
 import { NextResponse } from "next/server";
 import { apiRequest } from "@/lib/apiRequest";
 
@@ -28,7 +13,7 @@ export async function PATCH(
   try {
     const { id } = await context.params;
 
-    const { data, status } = await apiRequest(`/u/wallet/payment-methods/${id}/set-active-deactive`, {
+    const { data, status } = await apiRequest(`/u/wallet/payment-methods/${id}/set-active-deactive/`, {
       method: "PATCH",
     });
 

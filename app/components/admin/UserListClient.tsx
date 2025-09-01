@@ -1,36 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import toast, { Toaster } from "react-hot-toast";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import toast from "react-hot-toast";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Pencil, RefreshCcw, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { TbPasswordUser } from "react-icons/tb";
+import clsx from "clsx";
+import { extractErrorMessage } from "@/app/lib/utils/extractErrorMessage";
 
 type ApiUser = {
   id: number | string;
@@ -39,8 +34,8 @@ type ApiUser = {
   last_name: string;
   email: string;
   phone_number: string;
-  status: string; // "Active"/"Inactive"
-  role: string;   // "Merchant", etc.
+  status: string;
+  role: string;
   pid?: string;
   merchant?: {
     brand_name?: string;
@@ -49,17 +44,19 @@ type ApiUser = {
     brand_logo?: string;
     status?: string;
     fees_type?: string;
-    fees?: string;         // <— we’ll use this
+    deposit_fees?: string;
+    payout_fees?: string;
+    withdraw_fees?: string;
     is_active?: boolean;
   };
 };
 
 type InitialPayload = {
   status: boolean;
-  count: number;          // total items
-  next: string | null;    // url or null
+  count: number;
+  next: string | null;
   previous: string | null;
-  data: ApiUser[];        // current page items
+  data: ApiUser[];
 };
 
 type User = {
@@ -73,14 +70,26 @@ type User = {
   phone: string;
   status: "active" | "inactive";
   role: string;
-  fees: string;           // <— added for edit & display
+  deposit_fees: string;
+  payout_fees: string;
+  withdraw_fees: string;
   brand_name?: string;
+  username?: string;
 };
 
 type Props = {
   initialData: InitialPayload;
   currentPage: number;
 };
+
+function getPageRange(current: number, total: number, max = 7) {
+  if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
+  const half = Math.floor(max / 2);
+  let start = Math.max(1, current - half);
+  const end = Math.min(total, start + max - 1);
+  if (end - start + 1 < max) start = Math.max(1, end - max + 1);
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
 
 export default function UserListClient({ initialData, currentPage }: Props) {
   const router = useRouter();
@@ -99,12 +108,15 @@ export default function UserListClient({ initialData, currentPage }: Props) {
       phone: u.phone_number ?? "—",
       status: /active/i.test(u.status) ? "active" : "inactive",
       role: u.role ?? "Merchant",
-      fees: u.merchant?.fees ?? "0.00",
-      brand_name: u.merchant?.brand_name,
+      deposit_fees: u.merchant?.deposit_fees ?? "0.00",
+      payout_fees: u.merchant?.payout_fees ?? "0.00",
+      withdraw_fees: u.merchant?.withdraw_fees ?? "0.00",
+      brand_name: u.merchant?.brand_name ?? "",
+      username: u.username,
     }));
   }, [initialData]);
 
-  // Search & status filter (client-side for current page items)
+  // Search & status filter
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
 
@@ -117,21 +129,35 @@ export default function UserListClient({ initialData, currentPage }: Props) {
         row.email.toLowerCase().includes(term) ||
         row.phone.includes(term) ||
         row.storeId.toLowerCase().includes(term) ||
-        (row.brand_name ?? "").toLowerCase().includes(term);
+        (row.brand_name ?? "").toLowerCase().includes(term) ||
+        (row.username ?? "").toLowerCase().includes(term);
       const matchesStatus = statusFilter === "all" || row.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [rows, search, statusFilter]);
 
-  // Server-backed pagination controls
-  const perPage = Math.max(1, initialData?.data?.length ?? 1);
-  const totalPages = Math.max(1, Math.ceil((initialData?.count ?? rows.length) / perPage));
-  const canPrev = Boolean(initialData?.previous) || currentPage > 1;
-  const canNext = Boolean(initialData?.next);
+  // Server-backed pagination (stable)
+  const pageSizeRef = useRef<number>(initialData?.data?.length || 1);
+  useEffect(() => {
+    if (initialData.next) {
+      pageSizeRef.current = Math.max(pageSizeRef.current, initialData.data.length || 1);
+    }
+    if (!initialData.next && !initialData.previous) {
+      pageSizeRef.current = initialData.data.length || 1;
+    }
+  }, [initialData.next, initialData.previous, initialData.data.length]);
+
+  const pageSize = pageSizeRef.current || 1;
+  const totalPages = Math.max(1, Math.ceil((initialData?.count ?? rows.length) / pageSize));
+  const canPrev = currentPage > 1 && Boolean(initialData?.previous);
+  const canNext = currentPage < totalPages && Boolean(initialData?.next);
+  const pages = getPageRange(currentPage, totalPages, 7);
 
   const goToPage = (page: number) => {
+    const target = Math.min(Math.max(1, page), totalPages);
+    if (target === currentPage) return;
     const params = new URLSearchParams(searchParams?.toString() || "");
-    params.set("page", String(page));
+    params.set("page", String(target));
     router.push(`?${params.toString()}`);
   };
 
@@ -152,7 +178,7 @@ export default function UserListClient({ initialData, currentPage }: Props) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Add User form (now includes fees)
+  // Add User form (includes fees)
   const [addForm, setAddForm] = useState({
     first_name: "",
     last_name: "",
@@ -161,11 +187,13 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     password: "",
     phone_number: "",
     brand_name: "",
-    fees: "", // <— new
+    deposit_fees: "",
+    payout_fees: "",
+    withdraw_fees: "",
   });
   const [showAddPassword, setShowAddPassword] = useState(false);
 
-  const requiredFilled =
+  const requiredFilled = Boolean(
     addForm.first_name.trim() &&
     addForm.last_name.trim() &&
     addForm.email.trim() &&
@@ -173,13 +201,22 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     addForm.password.trim().length >= 6 &&
     addForm.phone_number.trim() &&
     addForm.brand_name.trim() &&
-    addForm.fees.trim();
+    addForm.deposit_fees.trim() &&
+    addForm.payout_fees.trim() &&
+    addForm.withdraw_fees.trim()
+  );
 
-  // Edit form: first_name, last_name, fees (no balance/deposit/payout)
+  // Edit form: ALL fields
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
-    fees: "",
+    email: "",
+    username: "",
+    phone_number: "",
+    brand_name: "",
+    deposit_fees: "",
+    payout_fees: "",
+    withdraw_fees: "",
   });
 
   // ====== CREATE USER (POST) ======
@@ -190,12 +227,11 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     const req = fetch("/api/merchant/create-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // Backend can map fees into merchant.fees if needed
       body: JSON.stringify(addForm),
     }).then(async (res) => {
       const data = await res.json().catch(() => ({} as unknown));
       if (!res.ok) {
-        const msg = data?.message || data?.error || data?.detail || `Request failed with ${res.status}`;
+        const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
         throw new Error(msg);
       }
       return data;
@@ -217,10 +253,12 @@ export default function UserListClient({ initialData, currentPage }: Props) {
       password: "",
       phone_number: "",
       brand_name: "",
-      fees: "",
+      deposit_fees: "",
+      payout_fees: "",
+      withdraw_fees: "",
     });
 
-    router.refresh(); // re-fetch current page from server
+    router.refresh();
   };
 
   // ====== OPEN EDIT ======
@@ -229,33 +267,46 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     setEditForm({
       first_name: row.first_name || "",
       last_name: row.last_name || "",
-      fees: row.fees || "",
+      email: row.email || "",
+      username: row.username || "",
+      phone_number: row.phone || "",
+      brand_name: row.brand_name || "",
+      deposit_fees: row.deposit_fees || "",
+      payout_fees: row.payout_fees || "",
+      withdraw_fees: row.withdraw_fees || "",
     });
     setEditOpen(true);
   };
 
-  // ====== SAVE EDIT (PATCH merchant.fees) ======
-  // The backend requested payload shape: { merchant: { fees: "15.00" } }
+  // ====== SAVE EDIT (PATCH) ======
+  // Send user fields at top-level; fees under merchant.
   const saveEdit = async () => {
     if (!selected) return;
     if (!selected.pid) {
       toast.error("Missing PID for this user.");
       return;
     }
-    if (!editForm.fees.trim()) {
-      toast.error("Fees is required.");
+
+    // Simple validation
+    if (!editForm.first_name.trim() || !editForm.last_name.trim() || !editForm.email.trim()) {
+      toast.error("First name, last name and email are required.");
       return;
     }
 
     setIsUpdating(true);
 
     const payload = {
+      first_name: editForm.first_name,
+      last_name: editForm.last_name,
+      email: editForm.email,
+      username: editForm.username,
+      phone_number: editForm.phone_number,
       merchant: {
-        fees: String(editForm.fees),
+        brand_name: editForm.brand_name,
+        deposit_fees: editForm.deposit_fees,
+        payout_fees: editForm.payout_fees,
+        withdraw_fees: editForm.withdraw_fees,
       },
-      // If later you want to update names as well, confirm backend shape and include them here.
-      // first_name: editForm.first_name,
-      // last_name: editForm.last_name,
     };
 
     const req = fetch(`/api/merchant/user/${selected.pid}/update`, {
@@ -265,7 +316,7 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     }).then(async (res) => {
       const data = await res.json().catch(() => ({} as unknown));
       if (!res.ok) {
-        const msg = data?.message || data?.error || data?.detail || `Request failed with ${res.status}`;
+        const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
         throw new Error(msg);
       }
       return data;
@@ -310,7 +361,7 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     }).then(async (res) => {
       const data = await res.json().catch(() => ({} as unknown));
       if (!res.ok) {
-        const msg = data?.message || data?.error || data?.detail || `Request failed with ${res.status}`;
+        const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
         throw new Error(msg);
       }
       return data;
@@ -351,7 +402,7 @@ export default function UserListClient({ initialData, currentPage }: Props) {
     }).then(async (res) => {
       const data = await res.json().catch(() => ({} as unknown));
       if (!res.ok) {
-        const msg = data?.message || data?.error || data?.detail || `Request failed with ${res.status}`;
+        const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
         throw new Error(msg);
       }
       return data;
@@ -370,22 +421,12 @@ export default function UserListClient({ initialData, currentPage }: Props) {
 
   return (
     <Card className="space-y-4 p-4">
-      <div>
-        <h1 className="text-xl font-semibold">Users List</h1>
-        <p className="text-sm text-muted-foreground">All staff in your system.</p>
-      </div>
-
-      {/* Search & Filter */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          placeholder="Search by storeID, name, email, phone, or brand..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="sm:w-1/3"
-          aria-label="Search users"
-        />
-
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Users List</h1>
+          <p className="text-sm text-muted-foreground">All staff in your system.</p>
+        </div>
+        <div className="flex items-center gap-2">
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "active" | "inactive" | "all")}>
             <SelectTrigger className="w-[160px]" aria-label="Filter by status">
               <SelectValue placeholder="Status" />
@@ -397,7 +438,7 @@ export default function UserListClient({ initialData, currentPage }: Props) {
             </SelectContent>
           </Select>
           <Button
-            className="bg-customViolet text-white hover:bg-customViolet/90 hover:cursor-pointer"
+            className="bg-customViolet text-white hover:bg-customViolet/90"
             onClick={() => setAddOpen(true)}
           >
             Add User
@@ -405,19 +446,33 @@ export default function UserListClient({ initialData, currentPage }: Props) {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Input
+          placeholder="Search by storeID, name, email, phone, brand, username..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="sm:max-w-md"
+          aria-label="Search users"
+        />
+      </div>
+
       {/* Table */}
-      <div className="rounded-sm border bg-white overflow-hidden">
-        <Table className="min-w-full text-sm">
+      <div className="rounded-sm border bg-white overflow-hidden overflow-x-auto">
+        <Table className="min-w-[1000px] text-sm">
           <TableHeader>
             <TableRow className="hover:bg-customViolet bg-customViolet text-white">
-              <TableHead className="w-[12%] text-white">StoreID</TableHead>
-              <TableHead className="w-[18%] text-white">Name</TableHead>
-              <TableHead className="w-[18%] text-white">Email</TableHead>
-              <TableHead className="w-[14%] text-white">Phone</TableHead>
-              <TableHead className="w-[14%] text-white">Brand</TableHead>
-              <TableHead className="w-[8%] text-white">Fees</TableHead>
-              <TableHead className="w-[10%] text-white">Status</TableHead>
-              <TableHead className="w-[16%] text-white text-left">Actions</TableHead>
+              <TableHead className="text-white">StoreID</TableHead>
+              <TableHead className="text-white">Name</TableHead>
+              <TableHead className="text-white">Username</TableHead>
+              <TableHead className="text-white">Email</TableHead>
+              <TableHead className="text-white">Phone</TableHead>
+              <TableHead className="text-white">Brand</TableHead>
+              <TableHead className="text-white text-center">Deposit(%)</TableHead>
+              <TableHead className="text-white text-center">Payout(%)</TableHead>
+              <TableHead className="text-white text-center">Withdraw(%)</TableHead>
+              <TableHead className="text-white">Status</TableHead>
+              <TableHead className="text-white text-left">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -425,17 +480,20 @@ export default function UserListClient({ initialData, currentPage }: Props) {
               <TableRow key={row.id} className="hover:bg-gray-50">
                 <TableCell>{row.storeId}</TableCell>
                 <TableCell>{row.name}</TableCell>
+                <TableCell>{row.username ?? "—"}</TableCell>
                 <TableCell>{row.email}</TableCell>
                 <TableCell>{row.phone}</TableCell>
                 <TableCell>{row.brand_name ?? "—"}</TableCell>
-                <TableCell className="text-center">{row.fees}</TableCell>
+                <TableCell className="text-center">{row.deposit_fees}</TableCell>
+                <TableCell className="text-center">{row.payout_fees}</TableCell>
+                <TableCell className="text-center">{row.withdraw_fees}</TableCell>
                 <TableCell>
-                  <Badge className={row.status === "active" ? "bg-green-600" : "bg-red-600"}>
+                  <Badge className={clsx("capitalize", row.status === "active" ? "bg-green-600" : "bg-red-600")}>
                     {row.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
+                <TableCell className="text-left">
+                  <div className="flex items-center gap-1">
                     {/* Edit */}
                     <Button
                       variant="ghost"
@@ -443,7 +501,6 @@ export default function UserListClient({ initialData, currentPage }: Props) {
                       title="Edit"
                       onClick={() => openEdit(row)}
                       aria-label="Edit"
-                      className="cursor-pointer"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -454,7 +511,6 @@ export default function UserListClient({ initialData, currentPage }: Props) {
                       title="Reset Password"
                       onClick={() => openReset(row)}
                       aria-label="Reset Password"
-                      className="cursor-pointer"
                     >
                       <TbPasswordUser size={20} />
                     </Button>
@@ -465,18 +521,16 @@ export default function UserListClient({ initialData, currentPage }: Props) {
                       title={row.status === "active" ? "Deactivate" : "Activate"}
                       onClick={() => openToggleConfirm(row)}
                       aria-label="Toggle Status"
-                      className="cursor-pointer"
                     >
-                      <RefreshCcw className={`h-4 w-4 ${row.status === "active" ? "text-orange-400" : "text-green-400"}`} />
+                      <RefreshCcw className={clsx("h-4 w-4", row.status === "active" ? "text-orange-400" : "text-green-500")} />
                     </Button>
-                    {/* NOTE: Delete action removed as requested */}
                   </div>
                 </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={11} className="h-24 text-center text-sm text-muted-foreground">
                   No users found on this page.
                 </TableCell>
               </TableRow>
@@ -485,22 +539,60 @@ export default function UserListClient({ initialData, currentPage }: Props) {
         </Table>
       </div>
 
-      {/* Server-backed Pagination */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={() => goToPage(Math.max(1, currentPage - 1))} disabled={!canPrev}>
-          Previous
-        </Button>
+      {/* Numbered Pagination */}
+      <div className="flex items-center justify-center sm:justify-end py-4">
         <div className="flex items-center gap-2">
-          <span>Page {currentPage}</span>
-          <span>/</span>
-          <span>{totalPages}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={!canPrev}
+          >
+            Previous
+          </Button>
+
+          {pages[0] !== 1 && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => goToPage(1)}>
+                1
+              </Button>
+              {pages[0] > 2 && <span className="px-1">…</span>}
+            </>
+          )}
+
+          {pages.map((p) => (
+            <Button
+              key={p}
+              variant={p === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => goToPage(p)}
+              className={p === currentPage ? "bg-customViolet text-white hover:bg-customViolet/90" : ""}
+            >
+              {p}
+            </Button>
+          ))}
+
+          {pages[pages.length - 1] !== totalPages && (
+            <>
+              {pages[pages.length - 1] < totalPages - 1 && <span className="px-1">…</span>}
+              <Button variant="outline" size="sm" onClick={() => goToPage(totalPages)}>
+                {totalPages}
+              </Button>
+            </>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={!canNext}
+          >
+            Next
+          </Button>
         </div>
-        <Button variant="outline" onClick={() => goToPage(currentPage + 1)} disabled={!canNext}>
-          Next
-        </Button>
       </div>
 
-      {/* === Add User Dialog (POST + toast.promise) === */}
+      {/* === Add User Dialog === */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -588,15 +680,34 @@ export default function UserListClient({ initialData, currentPage }: Props) {
               </div>
             </div>
 
-            {/* NEW: Fees */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="fees">Fees</Label>
-              <Input
-                id="fees"
-                value={addForm.fees}
-                onChange={(e) => setAddForm((f) => ({ ...f, fees: e.target.value }))}
-                placeholder="e.g. 10.00"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="deposit_fees">Deposit fees (%)</Label>
+                <Input
+                  id="deposit_fees"
+                  value={addForm.deposit_fees}
+                  onChange={(e) => setAddForm((f) => ({ ...f, deposit_fees: e.target.value }))}
+                  placeholder="e.g. 10.00"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="payout_fees">Payout fees (%)</Label>
+                <Input
+                  id="payout_fees"
+                  value={addForm.payout_fees}
+                  onChange={(e) => setAddForm((f) => ({ ...f, payout_fees: e.target.value }))}
+                  placeholder="e.g. 10.00"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="withdraw_fees">Withdraw fees (%)</Label>
+                <Input
+                  id="withdraw_fees"
+                  value={addForm.withdraw_fees}
+                  onChange={(e) => setAddForm((f) => ({ ...f, withdraw_fees: e.target.value }))}
+                  placeholder="e.g. 10.00"
+                />
+              </div>
             </div>
           </div>
 
@@ -618,7 +729,7 @@ export default function UserListClient({ initialData, currentPage }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* === Edit User Dialog (first_name, last_name, fees) === */}
+      {/* === Edit User Dialog (ALL fields) === */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -646,14 +757,70 @@ export default function UserListClient({ initialData, currentPage }: Props) {
               </div>
             </div>
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit_fees">Fees</Label>
-              <Input
-                id="edit_fees"
-                value={editForm.fees}
-                onChange={(e) => setEditForm((f) => ({ ...f, fees: e.target.value }))}
-                placeholder="e.g. 15.00"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit_email">Email</Label>
+                <Input
+                  id="edit_email"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit_username">Username</Label>
+                <Input
+                  id="edit_username"
+                  value={editForm.username}
+                  onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit_phone">Phone Number</Label>
+                <Input
+                  id="edit_phone"
+                  value={editForm.phone_number}
+                  onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit_brand">Brand Name</Label>
+                <Input
+                  id="edit_brand"
+                  value={editForm.brand_name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, brand_name: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit_deposit">Deposit fees (%)</Label>
+                <Input
+                  id="edit_deposit"
+                  value={editForm.deposit_fees}
+                  onChange={(e) => setEditForm((f) => ({ ...f, deposit_fees: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit_payout">Payout fees (%)</Label>
+                <Input
+                  id="edit_payout"
+                  value={editForm.payout_fees}
+                  onChange={(e) => setEditForm((f) => ({ ...f, payout_fees: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit_withdraw">Withdraw fees (%)</Label>
+                <Input
+                  id="edit_withdraw"
+                  value={editForm.withdraw_fees}
+                  onChange={(e) => setEditForm((f) => ({ ...f, withdraw_fees: e.target.value }))}
+                />
+              </div>
             </div>
           </div>
 
@@ -679,9 +846,7 @@ export default function UserListClient({ initialData, currentPage }: Props) {
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
-              Set a new password for {selected?.name ?? "user"}.
-            </DialogDescription>
+            <DialogDescription>Set a new password for {selected?.name ?? "user"}.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-1.5">

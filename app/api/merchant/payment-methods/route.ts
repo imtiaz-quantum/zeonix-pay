@@ -1,8 +1,6 @@
 import { apiRequest } from "@/lib/apiRequest";
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-
 // GET all payment methods
 export async function GET() {
   const { data, status, ok } = await apiRequest("/u/wallet/payment-methods/", {

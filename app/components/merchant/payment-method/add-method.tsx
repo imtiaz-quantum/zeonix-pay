@@ -125,7 +125,7 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const [method, setMethod] = useState<Method>("bank");
+  const [method, setMethod] = useState<Method>("mobileBanking");
   const [makePrimary, setMakePrimary] = useState<boolean>(false);
   // Bank
   const [holderName, setHolderName] = useState("");

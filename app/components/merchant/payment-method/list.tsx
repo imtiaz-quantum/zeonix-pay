@@ -257,8 +257,8 @@ import { Badge } from "@/components/ui/badge";
 import { Landmark, Smartphone, Coins } from "lucide-react";
 import clsx from "clsx";
 import toast from "react-hot-toast";
-import ConfirmAction from "../../ConfirmAction";
 import { useRouter } from "next/navigation";
+import ConfirmAction from "../../ConfirmAction";
 
 type MethodType = "bkash" | "nagad" | "rocket" | "upay" | "bank" | "crypto";
 
@@ -405,7 +405,7 @@ export default function PaymentMethodsList({ data }: { data: PaymentMethod[] }) 
     setBusyId(null);
     router.refresh();
   };
-
+console.log(methods)
   return (
     <div className="space-y-4 p-4 sm:p-6">
       {methods.length === 0 && (

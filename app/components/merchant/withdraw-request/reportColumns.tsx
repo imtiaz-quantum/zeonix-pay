@@ -17,6 +17,7 @@ import { ArrowUpDown, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 export type Transaction = {
   id: number,
   merchant: number
+  paymentDetails: { account_name: string; account_number: string }
   amount: string
   status: string          // "success" | "pending" | "failed" | "processing" | "rejected"
   message: string
@@ -45,6 +46,7 @@ export const columns: ColumnDef<Transaction>[] = [
       ),
       cell: ({ row }) => <div className="font-medium">{row.getValue("merchant") as string}</div>,
     }, */
+
   {
     // snake_case -> readable label via accessorFn
     accessorKey: "paymentMethod",
@@ -85,6 +87,19 @@ export const columns: ColumnDef<Transaction>[] = [
       </Button>
     ),
     cell: ({ row }) => <div className="font-medium">{row.getValue("trx_id") as string}</div>,
+  },
+  {
+    id: "payment_details",
+    header: "Payment Details",
+    cell: ({ row }) => {
+      const det = row.original.paymentDetails ?? {}
+      return (
+        <div className="space-y-0.5">
+          <div className="text-sm">{det.account_name?.toLocaleUpperCase() ?? ""}</div>
+          <div className="text-xs text-muted-foreground">{(det.account_number ?? "")}</div>
+        </div>
+      )
+    },
   },
   {
     accessorKey: "message",

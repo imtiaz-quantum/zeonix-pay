@@ -26,7 +26,9 @@ type MerchantData = {
   brand_logo: string | null; // URL or path returned by backend
   status: "Active" | "Inactive" | string;
   is_active: boolean;
-  fees: string; // "10.00"
+  deposit_fees: string; // "10.00"
+  payout_fees: string; // "10.00"
+  withdraw_fees: string; // "10.00"
 };
 
 type UploadResponse = {
@@ -224,7 +226,7 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
   return (
     <div className="rounded-2xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden">
       <div className="px-6 pb-6 z-20 bg-customViolet">
-        <div className="flex items-end justify-between z-30 pt-8 space-y-4 sm:space-y-0 sm:gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between z-30 pt-8 space-y-4 sm:space-y-0 sm:gap-4">
           {/* Brand logo */}
           <div className="flex items-end gap-4">
             <div className="relative group grid h-20 w-20 place-items-center rounded-2xl bg-white ring-1 ring-black/10 shadow -mt-6 overflow-hidden">
@@ -272,7 +274,7 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
           </div>
 
           {/* Header buttons */}
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-row gap-2">
             <button
               onClick={() => setIsEditing(!isEditing)}
               className="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -321,20 +323,20 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
 
       {/* Body */}
       <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 gap-5 mt-8">
-        <div className="space-y-4">
-          {/* Brand Name (text) */}
-          <Field
-            icon={<Building2 className="h-4 w-4 text-slate-500" />}
-            label="Brand Name"
-            value={isEditing ? newBrandName : data.brand_name}
-            onChange={(e) => setNewBrandName(e.currentTarget.value)}
-            isEditable={isEditing}
-            inputType="text"
-            placeholder="e.g. Zeonix"
-            maxLength={80}
-          />
-          {/* Domain (url) */}
-          {/*    <Field
+
+        {/* Brand Name (text) */}
+        <Field
+          icon={<Building2 className="h-4 w-4 text-slate-500" />}
+          label="Brand Name"
+          value={isEditing ? newBrandName : data.brand_name}
+          onChange={(e) => setNewBrandName(e.currentTarget.value)}
+          isEditable={isEditing}
+          inputType="text"
+          placeholder="e.g. Zeonix"
+          maxLength={80}
+        />
+        {/* Domain (url) */}
+        {/*    <Field
             icon={<Globe2 className="h-4 w-4 text-slate-500" />}
             label="Domain"
             value={isEditing ? newDomain : data.domain_name}
@@ -344,53 +346,67 @@ export default function ProfileCard({ data }: { data: MerchantData }) {
             placeholder="https://example.com"
             pattern="^https?://.+$"
           /> */}
-          <Field
-            icon={<Globe2 className="h-4 w-4 text-slate-500" />}
-            label="Domain"
-            value={data.domain_name}
-            pattern="^https?://.+$"
-          />
-          {/* WhatsApp (tel) */}
-          <Field
-            icon={<Phone className="h-4 w-4 text-slate-500" />}
-            label="WhatsApp"
-            value={isEditing ? newWhatsApp : data.whatsapp_number}
-            onChange={(e) => setNewWhatsApp(e.currentTarget.value)}
-            isEditable={isEditing}
-            inputType="tel"
-            inputMode="tel"
-            placeholder="+8801XXXXXXXXX"
-            action={<CopyBtn text={data.whatsapp_number ?? ""} />}
-          />
-        </div>
 
-        <div className="space-y-4">
-          {/* Status (dropdown when editing) */}
-          <Field
-            icon={<Shield className="h-4 w-4 text-slate-500" />}
-            label="Status"
-            value={isEditing ? newStatus : data.status}
-            onChange={(e) =>
-              setNewStatus((e as React.ChangeEvent<HTMLSelectElement>).currentTarget.value)
-            }
-            isEditable={isEditing}
-            isSelect
-            selectOptions={["Active", "Inactive"]}
-          />
-          {/* Is Active (read-only view) */}
-          <Field
-            icon={<ToggleRight className="h-4 w-4 text-slate-500" />}
-            label="Is Active"
-            value={data.is_active ? "Active" : "Inactive"}
-          />
-          {/* Fees — ALWAYS read-only */}
-          <Field
-            icon={<BadgeDollarSign className="h-4 w-4 text-slate-500" />}
-            label="Fees (%)"
-            value={`${data.fees}%`}
-            disabled
-          />
-        </div>
+        {/* WhatsApp (tel) */}
+        <Field
+          icon={<Phone className="h-4 w-4 text-slate-500" />}
+          label="WhatsApp"
+          value={isEditing ? newWhatsApp : data.whatsapp_number}
+          onChange={(e) => setNewWhatsApp(e.currentTarget.value)}
+          isEditable={isEditing}
+          inputType="tel"
+          inputMode="tel"
+          placeholder="+8801XXXXXXXXX"
+          action={<CopyBtn text={data.whatsapp_number ?? ""} />}
+        />
+        <Field
+          icon={<Globe2 className="h-4 w-4 text-slate-500" />}
+          label="Domain"
+          value={data.domain_name}
+          pattern="^https?://.+$"
+        />
+
+
+        {/* Status (dropdown when editing) */}
+        <Field
+          icon={<Shield className="h-4 w-4 text-slate-500" />}
+          label="Status"
+          value={isEditing ? newStatus : data.status}
+          onChange={(e) =>
+            setNewStatus((e as React.ChangeEvent<HTMLSelectElement>).currentTarget.value)
+          }
+          isEditable={isEditing}
+          isSelect
+          selectOptions={["Active", "Inactive"]}
+        />
+        {/* Is Active (read-only view) */}
+        <Field
+          icon={<ToggleRight className="h-4 w-4 text-slate-500" />}
+          label="Is Active"
+          value={data.is_active ? "Active" : "Inactive"}
+        />
+        {/* Deposit fees — ALWAYS read-only */}
+        <Field
+          icon={<BadgeDollarSign className="h-4 w-4 text-slate-500" />}
+          label="Deposit Fees (%)"
+          value={`${data.deposit_fees}%`}
+          disabled
+        />
+        {/* Payout Fees — ALWAYS read-only */}
+        <Field
+          icon={<BadgeDollarSign className="h-4 w-4 text-slate-500" />}
+          label="Payout Fees (%)"
+          value={`${data.payout_fees}%`}
+          disabled
+        />
+        {/*Withdraw Fees — ALWAYS read-only */}
+        <Field
+          icon={<BadgeDollarSign className="h-4 w-4 text-slate-500" />}
+          label="Withdraw Fees (%)"
+          value={`${data.withdraw_fees}%`}
+          disabled
+        />
+
       </div>
 
       {isEditing && (

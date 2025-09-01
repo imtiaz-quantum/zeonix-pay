@@ -1,7 +1,8 @@
 import { authOptions } from "@/app/lib/authOptions";
 import { getAccessToken } from "@/app/lib/getToken";
 import { getServerSession } from "next-auth";
-
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function apiRequest(path: string, options: RequestInit = {}) {
   const session = await getServerSession(authOptions);
