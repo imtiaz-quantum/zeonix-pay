@@ -402,7 +402,7 @@ export default function ProfilePage({ data }: { data: ProfileData }) {
         )}
       </div>
 
-      {data?.role === "Admin" && <ZeonixPayCard userRole="Admin"/>}
+      {data?.role === "Admin" && <ZeonixPayCard/>}
     </div>
 
   );

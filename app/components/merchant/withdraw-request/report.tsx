@@ -11,9 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { columns, type Transaction } from "@/app/components/merchant/withdraw-request/reportColumns";
+import { getReportColumns } from "@/app/components/merchant/withdraw-request/reportColumns";
 import { DataTableFacetedFilter } from "@/app/components/data-table-faceted-filter";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ApiResponse } from "@/app/lib/types/withdraw-request";
+import { useAuth } from "@/hooks/useAuth";
 
 const statuses = [
   { value: "success", label: "Success" },
@@ -23,19 +25,24 @@ const statuses = [
   { value: "rejected", label: "Rejected" },
 ];
 
-export default function Report({
-  dataa,
-  count,
+export default function Report({ withdrawRequestPromise,
   currentPage,
 }: {
-  dataa: Transaction[];
-  count: number;        // total items across pages (from API)
-  currentPage: number;  // page from URL
+  withdrawRequestPromise: Promise<ApiResponse>;
+  currentPage: number;
 }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-console.log(dataa)
+  const { data, count } = React.use(withdrawRequestPromise);
+  const dataa = data;
+   const { user } = useAuth();
+  const isAdmin = (user?.role ?? "").toLowerCase() === "admin";
+  const columns = React.useMemo(() => getReportColumns(isAdmin), [isAdmin]);
+
+
+
+  console.log(dataa)
   const table = useReactTable({
     data: dataa,
     columns,

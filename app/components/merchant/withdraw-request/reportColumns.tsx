@@ -35,7 +35,7 @@ const statusBg = (s: string) => {
   return "bg-red-600"; // failed / rejected / others
 };
 
-export const columns: ColumnDef<Transaction>[] = [
+export const baseColumns: ColumnDef<Transaction>[] = [
   /*   {
       accessorKey: "merchant",
       header: ({ column }) => (
@@ -188,3 +188,45 @@ export const columns: ColumnDef<Transaction>[] = [
       },
     }, */
 ]
+
+
+export function getReportColumns(isAdmin: boolean): ColumnDef<Transaction>[] {
+  const cols = [...baseColumns];
+
+  if (isAdmin) {
+    cols.push({
+      id: "actions",
+      header: () => <div className="text-right font-semibold">Actions</div>,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const rowData = row.original;
+        return (
+          <div className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => console.log("View", rowData)} className="cursor-pointer">
+                  <Eye className="w-4 h-4 mr-2" /> View
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => console.log("Edit", rowData)} className="cursor-pointer">
+                  <Pencil className="w-4 h-4 mr-2" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => console.log("Delete", rowData)} className="text-red-600 cursor-pointer">
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
+    });
+  }
+
+  return cols;
+}

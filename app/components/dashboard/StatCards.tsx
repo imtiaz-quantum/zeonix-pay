@@ -1,19 +1,8 @@
 import React, { use } from "react";
 import { StatCard } from "../StatCard";
 import { DollarSign, HandCoins, PiggyBank, Wallet } from "lucide-react";
+import { ApiResponse } from "@/app/lib/types/wallet-overview";
 
-interface StatsData {
-  total_withdraw: string;
-  withdraw_processing: string;
-  failedWithdrawals: string;
-  balance: string;
-}
-
-interface ApiResponse {
-  status: boolean;
-  count: number;
-  data: StatsData;
-}
 
 type DynamicTableProps = {
   statsCardsPromise: Promise<ApiResponse> | null;

@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+/* import { getServerSession } from "next-auth";
 import { authOptions } from "../../authOptions";
 import { redirect } from "next/navigation";
 import { getAccessToken } from "../../getToken";
@@ -33,4 +33,15 @@ export async function getOverview() {
   }
 
   return res.json();
+}
+ */
+
+import { serverGet } from "@/lib/server-get";
+import { ApiResponse } from "../../types/wallet-overview";
+
+export async function getOverview() {
+  return serverGet<ApiResponse>(
+    "/u/wallet/wallet-overview/?page_size=10",
+    { cache: "force-cache" }
+  );
 }

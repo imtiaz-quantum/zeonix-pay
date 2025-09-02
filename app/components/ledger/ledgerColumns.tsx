@@ -13,28 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpDown, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Ledger } from "@/app/lib/types/all-transaction";
 
-// ===== Types (match your API shape) =====
-export type Ledger = {
-  id: number;
-  store_name: string;
-  ip_address: string | null;
-  object_id: number;
-  amount: string;            // "5.00"
-  fee: string;               // "0.50"
-  net_amount: string;        // "4.50"
-  previous_balance: string;  // "593.00"
-  current_balance: string;   // "598.00"
-  method: string;            // "bkash"
-  status: string;            // "success" | "pending" | "failed" | etc
-  created_at: string;        // ISO
-  trx_id: string;            // "CHR90NBI43"
-  trx_uuid: string;
-  tran_type: string;         // "credit" | "debit"
-  wallet: number;
-  merchant: number;
-  content_type: number;
-};
 
 // ===== Helpers =====
 const formatBDT = (val: unknown) => {
@@ -58,7 +38,7 @@ const typeBg = (t: string) => {
 };
 
 // ===== Columns =====
-export const ledgerColumns: ColumnDef<Ledger>[] = [
+export const baseColumns: ColumnDef<Ledger>[] = [
   {
     accessorKey: "trx_id",
     header: ({ column }) => (
@@ -221,3 +201,45 @@ export const ledgerColumns: ColumnDef<Ledger>[] = [
     },
   }, */
 ];
+
+
+export function getLedgerColumns(isAdmin: boolean): ColumnDef<Ledger>[] {
+  const cols = [...baseColumns];
+
+  if (isAdmin) {
+    cols.push({
+      id: "actions",
+      header: () => <div className="text-right font-semibold">Actions</div>,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const rowData = row.original;
+        return (
+          <div className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => console.log("View", rowData)} className="cursor-pointer">
+                  <Eye className="w-4 h-4 mr-2" /> View
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => console.log("Edit", rowData)} className="cursor-pointer">
+                  <Pencil className="w-4 h-4 mr-2" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => console.log("Delete", rowData)} className="text-red-600 cursor-pointer">
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
+    });
+  }
+
+  return cols;
+}

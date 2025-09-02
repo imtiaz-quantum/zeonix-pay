@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -91,9 +91,16 @@ function getPageRange(current: number, total: number, max = 7) {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
-export default function UserListClient({ initialData, currentPage }: Props) {
+export default function UserListClient({ userListPromise,
+  currentPage,
+}: {
+  userListPromise: Promise<InitialPayload>;
+  currentPage: number;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const initialData  = use(userListPromise);
+
 
   // Normalize server data to table rows
   const rows = useMemo<User[]>(() => {

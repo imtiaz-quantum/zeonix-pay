@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import {
   ColumnFiltersState,
   SortingState,
@@ -31,12 +31,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import {
-  depositColumns,
-  type Deposit,
-} from "@/app/components/deposit/depositColumns";
 import { DataTableFacetedFilter } from "@/app/components/data-table-faceted-filter";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ApiResponse } from "@/app/lib/types/deposit";
+import { useAuth } from "@/hooks/useAuth";
+import { getDepositColumns } from "./depositColumns";
 
 const statusOptions = [
   { value: "active", label: "Active" },
@@ -59,13 +58,7 @@ const methodOptions = [
   { value: "upay", label: "Upay" },
 ];
 
-interface ApiResponse {
-  status: boolean;
-  count: number;
-  next: string | null;
-  previous: string | null;
-  data: Deposit[];
-}
+
 
 export default function DepositTable({
   depositListPromise,
@@ -81,6 +74,9 @@ export default function DepositTable({
   const payload = use(depositListPromise);
   const rows = payload.data;
 console.log(rows);
+ const { user } = useAuth();
+  const isAdmin = (user?.role ?? "").toLowerCase() === "admin";
+  const columns = useMemo(() => getDepositColumns(isAdmin), [isAdmin]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -88,7 +84,7 @@ console.log(rows);
 
   const table = useReactTable({
     data: rows,
-    columns: depositColumns,
+    columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -232,7 +228,7 @@ console.log(rows);
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={depositColumns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>

@@ -8,14 +8,13 @@ type PageProps = {
 export default async function UsersPage({ searchParams }: PageProps) {
   const sp = await searchParams;             
   const page = Number(sp?.page) || 1;
+  const userListPromise = getUserList(page)
 
-  const payload = await getUserList(page);
-  console.log(payload);
 
   return (
     <div>
 
-      <UserListClient initialData={payload} currentPage={page} />
+      <UserListClient userListPromise={userListPromise} currentPage={page} />
     </div>
   );
 }

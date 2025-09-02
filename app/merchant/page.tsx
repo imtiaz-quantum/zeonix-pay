@@ -1,9 +1,19 @@
-import React from 'react'
+"use client";
 
-const page = () => {
-  return (
-    <div>page</div>
-  )
-}
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default page
+const HomePage = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+
+
+      router.push("/merchant/dashboard");  
+
+  }, [router]);
+
+  return <div>Loading...</div>;
+};
+
+export default HomePage;

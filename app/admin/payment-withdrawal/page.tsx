@@ -339,11 +339,9 @@ import Report from "@/app/components/merchant/withdraw-request/report";
 type PageProps = { searchParams: Promise<{ page?: string }> };
 
 export default async function Page({ searchParams }: PageProps) {
-  const sp = await searchParams;               // Next 15: async
+  const sp = await searchParams;             
   const page = Number(sp?.page) || 1;
-
-  // Expect shape: { status, count, next, previous, data }
-  const res = await getWithdrawRequests(page);
+  const withdrawRequestPromise = getWithdrawRequests(page)
 
   return (
     <Card>
@@ -352,7 +350,7 @@ export default async function Page({ searchParams }: PageProps) {
         <CardDescription>A list of recent transactions.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Report dataa={res?.data ?? []} count={res?.count ?? 0} currentPage={page} />
+        <Report withdrawRequestPromise={withdrawRequestPromise} currentPage={page} />
       </CardContent>
     </Card>
   );

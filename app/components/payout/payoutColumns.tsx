@@ -13,22 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ArrowUpDown, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { Payout } from "@/app/lib/types/payout"
 
-// ---------- Types from your sample ----------
-export type Payout = {
-  id: number
-  store_name: string
-  trx_id: string
-  trx_uuid: string
-  receiver_name: string
-  receiver_number: string
-  amount: string
-  payment_method: string                    // e.g. "bkash"
-  payment_details: { account_name: string; account_number: string }
-  status: string                            // e.g. "success" | "pending" | "failed"
-  created_at: string
-  merchant: number
-}
 
 // ---------- Helpers ----------
 const statusBg = (s: string) => {
@@ -48,7 +34,7 @@ const formatBDT = (raw: string) => {
 }
 
 // ---------- Columns ----------
-export const payoutColumns: ColumnDef<Payout>[] = [
+const baseColumns: ColumnDef<Payout>[] = [
 /*   {
     id: "receiver",
     header: "Receiver",
@@ -126,7 +112,7 @@ export const payoutColumns: ColumnDef<Payout>[] = [
       </Button>
     ),
   },
-  {
+/*   {
     id: "payment_details",
     header: "Payment Details",
     cell: ({ row }) => {
@@ -138,7 +124,7 @@ export const payoutColumns: ColumnDef<Payout>[] = [
         </div>
       )
     },
-  },
+  }, */
   {
     accessorKey: "status",
     header: ({ column }) => (
@@ -200,3 +186,45 @@ export const payoutColumns: ColumnDef<Payout>[] = [
     },
   }, */
 ]
+
+
+export function getPayoutColumns(isAdmin: boolean): ColumnDef<Payout>[] {
+  const cols = [...baseColumns];
+
+  if (isAdmin) {
+    cols.push({
+      id: "actions",
+      header: () => <div className="text-right font-semibold">Actions</div>,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const rowData = row.original;
+        return (
+          <div className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => console.log("View", rowData)} className="cursor-pointer">
+                  <Eye className="w-4 h-4 mr-2" /> View
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => console.log("Edit", rowData)} className="cursor-pointer">
+                  <Pencil className="w-4 h-4 mr-2" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => console.log("Delete", rowData)} className="text-red-600 cursor-pointer">
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
+    });
+  }
+
+  return cols;
+}

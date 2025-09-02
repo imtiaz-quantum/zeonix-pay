@@ -19,9 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { payoutColumns, type Payout } from "@/app/components/payout/payoutColumns";
+import { getPayoutColumns } from "@/app/components/payout/payoutColumns";
 import { DataTableFacetedFilter } from "@/app/components/data-table-faceted-filter";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ApiResponse } from "@/app/lib/types/payout";
+import { useAuth } from "@/hooks/useAuth";
+
 
 const statusOptions = [
   { value: "active", label: "Active" },
@@ -38,11 +41,7 @@ const methodOptions = [
   { value: "upay", label: "Upay" },
 ];
 
-interface ApiResponse {
-  status: boolean;
-  count: number;   // total items across pages
-  data: Payout[];  // current page items
-}
+
 
 export default function PayoutTable({
   payoutListPromise,
@@ -56,7 +55,11 @@ export default function PayoutTable({
 
   const payload = React.use(payoutListPromise);
   const rows = payload.data;
+   const { user } = useAuth();
+    const isAdmin = (user?.role ?? "").toLowerCase() === "admin";
+    const columns = React.useMemo(() => getPayoutColumns(isAdmin), [isAdmin]);
 console.log(rows);
+
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -64,7 +67,7 @@ console.log(rows);
 
   const table = useReactTable({
     data: rows,
-    columns: payoutColumns,
+    columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -189,7 +192,7 @@ console.log(rows);
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={payoutColumns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>

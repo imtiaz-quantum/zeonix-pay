@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+/* import { getServerSession } from "next-auth";
 import { authOptions } from "../../authOptions";
 import { getAccessToken } from "../../getToken";
 
@@ -21,5 +21,13 @@ export async function getPaymentMethodList() {
     }
     return res.json();
 }
+ */
 
+import { serverGet } from "@/lib/server-get";
+import { ApiResponse } from "../../types/payment-method";
 
+export async function getPaymentMethodList() {
+  return serverGet<ApiResponse>(
+    `/u/wallet/payment-methods/?all=true`
+  );
+}

@@ -63,7 +63,7 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
   const [activeSubItem, setActiveSubItem] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   // Balance state
-
+console.log(role)
   const [showBalance, setShowBalance] = useState(true);
 
   // Track which popover is open (when collapsed)
@@ -87,7 +87,8 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
       return [
         { href: "/staff/dashboard", icon: LayoutDashboard, label: "Dashboard" },
         { href: "/staff/deposit", icon: ArrowRightLeft, label: "Deposit" },
-        {
+         { href: "/merchant/payout", icon: Send, label: "Payout" },
+       /*  {
           href: "/staff/payment-withdrawal",
           icon: Landmark,
           label: "Payment Withdrawal",
@@ -96,9 +97,9 @@ export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProp
             { href: "/staff/payment-withdrawal/report", label: "Withdrawal Report" },
             { href: "/staff/payment-withdrawal/methods", label: "Payment Methods" },
           ],
-        },
+        }, */
         { href: "/staff/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
-        { href: "/staff/settings", icon: Settings, label: "Settings" },
+     /*    { href: "/staff/settings", icon: Settings, label: "Settings" }, */
       ];
     } else if (role === "merchant") {
       return [

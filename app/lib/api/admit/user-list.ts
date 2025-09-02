@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+/* import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/lib/authOptions";
 import { redirect } from "next/navigation";
 import { getAccessToken } from "@/app/lib/getToken";
@@ -60,4 +60,14 @@ export async function getUserList(page = 1) {
 
   // OK
   return res.json();
+}
+ */
+
+import { serverGet } from "@/lib/server-get";
+import { InitialPayload } from "../../types/userList";
+
+export async function getUserList(page = 1) {
+  return serverGet<InitialPayload>(
+    `/admin/merchant/?page=${page}&page_size=10`
+  );
 }

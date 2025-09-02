@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+/* import { getServerSession } from "next-auth";
 import { authOptions } from "../../authOptions";
 import { redirect } from "next/navigation";
 import { getAccessToken } from "../../getToken";
@@ -32,4 +32,15 @@ export async function getPayoutList(page = 1) {
 
   // { status, count, next, previous, data: [...] }
   return res.json();
+}
+ */
+
+
+import { serverGet } from "@/lib/server-get";
+import { ApiResponse } from "../../types/payout";
+
+export async function getPayoutList(page = 1) {
+  return serverGet<ApiResponse>(
+    `/u/wallet/pay-outs/?page=${page}&page_size=10`
+  );
 }

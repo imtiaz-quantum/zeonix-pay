@@ -11,17 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { ledgerColumns, type Ledger } from "./ledgerColumns";
+import { getLedgerColumns } from "./ledgerColumns";
 import { DataTableFacetedFilter } from "@/app/components/data-table-faceted-filter";
 import { useRouter, useSearchParams } from "next/navigation";
-
-type ApiResponse = {
-  status: boolean;
-  count: number;        // total rows across pages
-  next: string | null;
-  previous: string | null;
-  data: Ledger[];       // current page rows
-};
+import { ApiResponse } from "@/app/lib/types/all-transaction";
+import { useAuth } from "@/hooks/useAuth";
 
 const statusOptions = [
   { value: "success", label: "Success" },
@@ -63,6 +57,9 @@ export default function LedgerTable({
   const payload = React.use(ledgerListPromise);
   const rows = payload.data;
   console.log(rows);
+   const { user } = useAuth();
+  const isAdmin = (user?.role ?? "").toLowerCase() === "admin";
+  const columns = React.useMemo(() => getLedgerColumns(isAdmin), [isAdmin]);
   
 
   // ---- table state
@@ -72,7 +69,7 @@ export default function LedgerTable({
 
   const table = useReactTable({
     data: rows,
-    columns: ledgerColumns,
+    columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -192,7 +189,7 @@ export default function LedgerTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={ledgerColumns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>

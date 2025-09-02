@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, use, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   Card,
@@ -36,42 +36,9 @@ import PaymentMethodsList from "./list";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import PaymentMethodsSkeleton from "../../skeletons/PaymentMethodsSkeleton";
+import { ApiResponse, BankMeta, CryptoMeta, Method, MobileBankingMeta } from "@/app/lib/types/payment-method";
 
-type Method = "bank" | "mobileBanking" | "crypto";
 
-type BankMeta = {
-  holderName: string;
-  accountNumber: string;
-  bankName: string;
-  branchName?: string;
-};
-
-type MobileBankingMeta = {
-  mobileProvider?: string;
-  accountType: string;
-  phoneNumber: string;
-};
-
-type CryptoMeta = {
-  cryptoMethod?: string;
-  cryptoId: string;
-};
-
-type MethodType = "bkash" | "nagad" | "rocket" | "upay" | "bank" | "crypto";
-
-export type PaymentMethod = {
-  id: number;
-  method_type: MethodType;
-  params: {
-    account_name: string;
-    account_number: string;
-  };
-  status: string;
-  is_primary: boolean;
-  created_at: string;
-  updated_at: string;
-  merchant: number;
-};
 
 function getProviderAsset(
   method: Method,
@@ -121,7 +88,8 @@ function ProviderLogo({
   const Fallback = methodIconMap[method];
   return <Fallback className={clsx("h-5 w-5 text-muted-foreground", className)} />;
 }
-const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
+const AddMethod = ({ paymentMethodListPromise}:{ paymentMethodListPromise: Promise<ApiResponse>}) => {
+  
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -142,6 +110,8 @@ const AddMethod = ({ data }: { data: PaymentMethod[] }) => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const {data} = use(paymentMethodListPromise);
+
 
   useEffect(() => {
     setMakePrimary(false);

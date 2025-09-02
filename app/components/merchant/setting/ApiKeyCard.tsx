@@ -1,28 +1,20 @@
 "use client";
-import { useState } from "react";
+import { use, useState } from "react";
 import { ToggleLeft, ToggleRight, Copy, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { RevealableField } from "./RevealableField";
+import { ApiKeyItem, ApiResponse } from "@/app/lib/types/apiKey";
 
-type ApiKeyItem = {
-  id: number;
-  api_key: string;
-  secret_key: string;
-  is_active: boolean;
-  created_at: string; // ISO
-  merchant: number;
-};
 
-export default function ApiKeyCard({
-  apiKey,
-}: {
-  apiKey: ApiKeyItem;
-}) {
+
+export default function ApiKeyCard({apiKeyPromise}: { apiKeyPromise: Promise<ApiResponse<ApiKeyItem>> }) {
   const router = useRouter();
-  const [showApiKey, setShowApiKey] = useState(false); // State to toggle visibility of API Key
-  const [showSecretKey, setShowSecretKey] = useState(false); // State to toggle visibility of Secret Key
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showSecretKey, setShowSecretKey] = useState(false);
 
+  const payload = use(apiKeyPromise);
+  const apiKey = payload.data;
   const handleGenerateKey = async () => {
     toast.promise(
       fetch("/api/merchant/apikey/generate", {

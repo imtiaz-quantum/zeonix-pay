@@ -2,18 +2,22 @@
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Globe, Server, BarChart3 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-interface Props {
-  userRole?: "Admin" | "Merchant" | "Staff";
-}
 
-export default function ZeonixPayCard({ userRole }: Props) {
+
+export default function ZeonixPayCard() {
+
+  const { user } = useAuth();
+  const role = (user?.role ?? "").toLowerCase()
+
+
   const handleClick = () => {
-    if (!userRole) {
+    if (!role) {
       alert("Role not found. Cannot open API documentation.");
       return;
     }
-    const url = `/${userRole.toLowerCase()}/api-docs`;
+    const url = `/${role}/api-docs`;
     window.open(url, "_blank"); // open in new tab
   };
 

@@ -37,6 +37,7 @@ export default async function page() {
   const role = await getUserRole();
   const walletTrnxPromise = getWalletTransactions();
   const statsCardsPromise = role !== "admin" ? getOverview() : null;
+  
 
   return (
     <div className="grid gap-6">

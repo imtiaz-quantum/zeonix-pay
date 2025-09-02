@@ -259,22 +259,8 @@ import clsx from "clsx";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import ConfirmAction from "../../ConfirmAction";
+import { MethodType, PaymentMethod } from "@/app/lib/types/payment-method";
 
-type MethodType = "bkash" | "nagad" | "rocket" | "upay" | "bank" | "crypto";
-
-export type PaymentMethod = {
-  id: number;
-  method_type: MethodType;
-  params: {
-    account_name: string;
-    account_number: string;
-  };
-  status: string;
-  is_primary: boolean;
-  created_at: string;
-  updated_at: string;
-  merchant: number;
-};
 
 const getMessage = (x: unknown): string | undefined => {
   if (typeof x === "object" && x !== null) {

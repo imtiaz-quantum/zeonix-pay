@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+/* import { getServerSession } from "next-auth";
 import { authOptions } from "../../authOptions";
 import { redirect } from "next/navigation";
 import { getAccessToken } from "../../getToken";
@@ -8,7 +8,7 @@ export async function getDepositList(page = 1) {
   const token = getAccessToken(session);
   if (!token) throw new Error("Not authenticated");
 
-  const baseUrl = process.env.BASE_URL; // e.g. https://api.zeonixpay.com/api/v1
+  const baseUrl = process.env.BASE_URL; 
   const url = `${baseUrl}/u/invoice/invoices/?page=${page}&page_size=10`;
 
   let res: Response;
@@ -33,4 +33,15 @@ export async function getDepositList(page = 1) {
 
   // { status, count, next, previous, data: [...] }
   return res.json();
+}
+ */
+
+import { serverGet } from "@/lib/server-get";
+import { ApiResponse } from "../../types/deposit";
+
+export async function getDepositList(page = 1) {
+  return serverGet<ApiResponse>(
+    `/u/invoice/invoices/?page=${page}&page_size=10`,
+    { cache: "force-cache" }
+  );
 }

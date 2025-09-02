@@ -66,3 +66,10 @@ export async function getMerchantProfile() {
 
   return res.json();
 }
+
+
+/* export async function getMerchantProfile() {
+  return serverGet<ApiResponse>(
+    `/user/merchant-profile`
+  );
+} */

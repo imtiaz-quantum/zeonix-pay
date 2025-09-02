@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+/* import { getServerSession } from "next-auth";
 import { authOptions } from "../../authOptions";
 import { redirect } from "next/navigation";
 import { getAccessToken } from "../../getToken";
@@ -33,4 +33,12 @@ export async function getApiKey() {
   }
 
   return res.json();
+}
+ */
+
+import { serverGet } from "@/lib/server-get";
+import type { ApiResponse, ApiKeyItem } from "../../types/apiKey";
+
+export async function getApiKey(): Promise<ApiResponse<ApiKeyItem>> {
+  return serverGet<ApiResponse<ApiKeyItem>>("/app/keys/");
 }

@@ -24,7 +24,7 @@ export async function getWithdrawRequests() {
 
 
 
-export async function getWithdrawRequests(page = 1) {
+/* export async function getWithdrawRequests(page = 1) {
   const session = await getServerSession(authOptions);
   const token = getAccessToken(session);
   if (!token) throw new Error("Not authenticated");
@@ -57,4 +57,13 @@ export async function getWithdrawRequests(page = 1) {
 
   // Expecting shape: { status, count, next, previous, data: [...] }
   return res.json();
+} */
+
+import { serverGet } from "@/lib/server-get";
+import { ApiResponse } from "../../types/withdraw-request";
+
+export async function getWithdrawRequests(page = 1) {
+  return serverGet<ApiResponse>(
+    `/u/wallet/withdraw-request/?page=${page}&page_size=10`
+  );
 }
