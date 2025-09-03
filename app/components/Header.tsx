@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/useAuth";
 
 // Keep this in a shared types file if possible
 export type BrandInfo = {
@@ -44,17 +45,18 @@ type Role = "admin" | "merchant" | "staff";
 type HeaderProps = {
   collapsed: boolean;
   toggleSidebar: () => void;
-  role?: Role;
   profileData?: BrandInfo | null;
 };
 
-export function Header({ role, collapsed, toggleSidebar, profileData }: HeaderProps) {
+export function Header({ collapsed, toggleSidebar, profileData }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [imgLoaded, setImgLoaded] = useState(false);
 
+  const { role } = useAuth();
+  const safeRole: Role = role ?? ""; 
 
-  // page title from path segment
+  // Page title from path segment
   const last = pathname.split("/").filter(Boolean).pop() ?? "dashboard";
   const pageTitle = decodeURIComponent(last).replace(/-/g, " ").replace(/^\w/, c => c.toUpperCase());
 
@@ -65,25 +67,20 @@ export function Header({ role, collapsed, toggleSidebar, profileData }: HeaderPr
       staff: "/login/staff",
     };
     const fallback = "/login";
-    signOut({ callbackUrl: role ? redirectMap[role] : fallback });
+    signOut({ callbackUrl: redirectMap[safeRole] || fallback });
   };
 
   const handleClick = () => {
-    // Default to merchant profile if role missing; adjust as desired
-    const safeRole = role ?? "merchant";
     router.push(`/${safeRole}/profile`);
   };
 
   const handleClickSetting = () => {
-    // Default to merchant profile if role missing; adjust as desired
-    const safeRole = role ?? "merchant";
     router.push(`/${safeRole}/settings`);
   };
-  console.log(profileData)
-  const avatarSrc = profileData?.brand_logo || "";
-  const avatarFallback =
-    (profileData?.brand_name?.[0] ?? "U").toUpperCase();
-console.log(role)
+
+  const avatarSrc = profileData?.brand_logo || "https://placehold.co/40x40.png";
+  const avatarFallback = (profileData?.brand_name?.[0] ?? "U").toUpperCase();
+
   return (
     <header
       className={`flex h-14 items-center justify-between gap-4 border-b bg-card px-4 lg:h-[70px] lg:px-6 sticky top-0 z-30 ${collapsed ? "lg:ml-20" : "lg:ml-64"
@@ -103,20 +100,6 @@ console.log(role)
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Uncomment if you want search/notifications
-        <form className="relative hidden md:block">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px] bg-background"
-          />
-        </form>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Toggle notifications</span>
-        </Button>
-        */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
@@ -124,16 +107,13 @@ console.log(role)
                 {!imgLoaded && (
                   <Skeleton className="absolute inset-0 h-8 w-8 rounded-full" />
                 )}
-
                 <AvatarImage
-                  src={avatarSrc || "https://placehold.co/40x40.png"}
+                  src={avatarSrc}
                   alt={profileData?.brand_name ?? "User"}
-                  // Radix-specific: "idle" | "loading" | "loaded"
                   onLoadingStatusChange={(status) => setImgLoaded(status === "loaded")}
                   className={`h-8 w-8 transition-opacity duration-200 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                 />
-
-                {/*           <AvatarFallback>{avatarFallback}</AvatarFallback> */}
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
               <span className="sr-only">Toggle user menu</span>
             </Button>
@@ -145,7 +125,6 @@ console.log(role)
                 <p className="text-sm font-medium leading-none">
                   {profileData?.brand_name ?? "User"}
                 </p>
-                {/* Add email/role here if available */}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -154,16 +133,12 @@ console.log(role)
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              {/*               <DropdownMenuItem>
-                <CreditCard className="mr-2 h-4 w-4" />
-                <span>Billing</span>
-              </DropdownMenuItem> */}
-              {role !== "admin" &&
+              {safeRole !== "admin" && (
                 <DropdownMenuItem onClick={handleClickSetting}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
-              }
+              )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

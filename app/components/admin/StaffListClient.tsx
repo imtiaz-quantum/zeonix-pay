@@ -1,0 +1,812 @@
+"use client";
+
+import { useMemo, useState, useRef, useEffect, use } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import toast from "react-hot-toast";
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Pencil, RefreshCcw, Eye, EyeOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+    Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+    DialogFooter, DialogClose,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { TbPasswordUser } from "react-icons/tb";
+import clsx from "clsx";
+import { extractErrorMessage } from "@/app/lib/utils/extractErrorMessage";
+
+type ApiUser = {
+    id: number | string;
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone_number: string;
+    status: string;
+    role: string;
+    pid?: string;
+};
+
+type InitialPayload = {
+    status: boolean;
+    count: number;
+    next: string | null;
+    previous: string | null;
+    data: ApiUser[];
+};
+
+type User = {
+    id: string;
+    pid: string;
+    first_name: string;
+    last_name: string;
+    name: string;
+    email: string;
+    phone: string;
+    status: "active" | "inactive";
+    role: string;
+    username?: string;
+};
+
+type Props = {
+    initialData: InitialPayload;
+    currentPage: number;
+};
+
+function getPageRange(current: number, total: number, max = 7) {
+    if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
+    const half = Math.floor(max / 2);
+    let start = Math.max(1, current - half);
+    const end = Math.min(total, start + max - 1);
+    if (end - start + 1 < max) start = Math.max(1, end - max + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
+
+export default function StaffListClient({ userListPromise,
+    currentPage,
+}: {
+    userListPromise: Promise<InitialPayload>;
+    currentPage: number;
+}) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const initialData = use(userListPromise);
+
+
+    // Normalize server data to table rows
+    const rows = useMemo<User[]>(() => {
+        return (initialData?.data ?? []).map((u) => ({
+            id: String(u.id),
+            pid: u.pid ?? "",
+            first_name: u.first_name ?? "",
+            last_name: u.last_name ?? "",
+            name: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "—",
+            email: u.email ?? "—",
+            phone: u.phone_number ?? "—",
+            status: /active/i.test(u.status) ? "active" : "inactive",
+            role: u.role ?? "",
+            username: u.username,
+        }));
+    }, [initialData]);
+
+    // Search & status filter
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
+
+    const filtered = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        return rows.filter((row) => {
+            const matchesSearch =
+                !term ||
+                row.name.toLowerCase().includes(term) ||
+                row.email.toLowerCase().includes(term) ||
+                row.phone.includes(term) ||
+                (row.username ?? "").toLowerCase().includes(term);
+            const matchesStatus = statusFilter === "all" || row.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+    }, [rows, search, statusFilter]);
+
+    // Server-backed pagination (stable)
+    const pageSizeRef = useRef<number>(initialData?.data?.length || 1);
+    useEffect(() => {
+        if (initialData.next) {
+            pageSizeRef.current = Math.max(pageSizeRef.current, initialData.data.length || 1);
+        }
+        if (!initialData.next && !initialData.previous) {
+            pageSizeRef.current = initialData.data.length || 1;
+        }
+    }, [initialData.next, initialData.previous, initialData.data.length]);
+
+    const pageSize = pageSizeRef.current || 1;
+    const totalPages = Math.max(1, Math.ceil((initialData?.count ?? rows.length) / pageSize));
+    const canPrev = currentPage > 1 && Boolean(initialData?.previous);
+    const canNext = currentPage < totalPages && Boolean(initialData?.next);
+    const pages = getPageRange(currentPage, totalPages, 7);
+
+    const goToPage = (page: number) => {
+        const target = Math.min(Math.max(1, page), totalPages);
+        if (target === currentPage) return;
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        params.set("page", String(target));
+        router.push(`?${params.toString()}`);
+    };
+
+    // Dialog & form states
+    const [editOpen, setEditOpen] = useState(false);
+    const [resetOpen, setResetOpen] = useState(false);
+    const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
+    const [addOpen, setAddOpen] = useState(false);
+
+    const [creating, setCreating] = useState(false);
+    const [isToggling, setIsToggling] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
+
+    const [selected, setSelected] = useState<User | null>(null);
+
+    // Password reset state
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+
+    // Add User form (includes fees)
+    const [addForm, setAddForm] = useState({
+        first_name: "",
+        last_name: "",
+        email: "",
+        username: "",
+        password: "",
+        phone_number: "",
+        role: ""
+    });
+    const [showAddPassword, setShowAddPassword] = useState(false);
+
+    const requiredFilled = Boolean(
+        addForm.first_name.trim() &&
+        addForm.last_name.trim() &&
+        addForm.email.trim() &&
+        addForm.username.trim() &&
+        addForm.password.trim().length >= 6 &&
+        addForm.phone_number.trim() &&
+        addForm.role.trim()
+
+    );
+
+    // Edit form: ALL fields
+    const [editForm, setEditForm] = useState({
+        first_name: "",
+        last_name: "",
+        email: "",
+        username: "",
+        phone_number: "",
+    });
+
+    // ====== CREATE USER (POST) ======
+    const createUser = async () => {
+        if (!requiredFilled || creating) return;
+        setCreating(true);
+
+        const req = fetch("/api/admin/create-staff", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(addForm),
+        }).then(async (res) => {
+            const data = await res.json().catch(() => ({} as unknown));
+            if (!res.ok) {
+                const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
+                throw new Error(msg);
+            }
+            return data;
+        });
+
+        await toast.promise(req, {
+            loading: "Creating user...",
+            success: "User created successfully.",
+            error: (e) => (e instanceof Error ? e.message : "Failed to create user."),
+        });
+
+        setCreating(false);
+        setAddOpen(false);
+        setAddForm({
+            first_name: "",
+            last_name: "",
+            email: "",
+            username: "",
+            password: "",
+            phone_number: "",
+            role: "",
+        });
+
+        router.refresh();
+    };
+
+    // ====== OPEN EDIT ======
+    const openEdit = (row: User) => {
+        setSelected(row);
+        setEditForm({
+            first_name: row.first_name || "",
+            last_name: row.last_name || "",
+            email: row.email || "",
+            username: row.username || "",
+            phone_number: row.phone || "",
+        });
+        setEditOpen(true);
+    };
+
+    // ====== SAVE EDIT (PATCH) ======
+    // Send user fields at top-level; fees under merchant.
+    const saveEdit = async () => {
+        if (!selected) return;
+        if (!selected.pid) {
+            toast.error("Missing PID for this user.");
+            return;
+        }
+
+        // Simple validation
+        if (!editForm.first_name.trim() || !editForm.last_name.trim() || !editForm.email.trim()) {
+            toast.error("First name, last name and email are required.");
+            return;
+        }
+
+        setIsUpdating(true);
+
+        const payload = {
+            first_name: editForm.first_name,
+            last_name: editForm.last_name,
+            email: editForm.email,
+            username: editForm.username,
+            phone_number: editForm.phone_number,
+        };
+
+        const req = fetch(`/api/merchant/user/${selected.pid}/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        }).then(async (res) => {
+            const data = await res.json().catch(() => ({} as unknown));
+            if (!res.ok) {
+                const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
+                throw new Error(msg);
+            }
+            return data;
+        });
+
+        await toast.promise(req, {
+            loading: "Updating user...",
+            success: "User updated successfully.",
+            error: (e) => (e instanceof Error ? e.message : "Failed to update user."),
+        });
+
+        setIsUpdating(false);
+        setEditOpen(false);
+        router.refresh();
+    };
+
+    // ====== PASSWORD RESET (POST) ======
+    const openReset = (row: User) => {
+        setSelected(row);
+        setPassword("");
+        setShowPassword(false);
+        setResetOpen(true);
+    };
+
+    const confirmReset = async () => {
+        if (!selected) return;
+        if (!selected.pid) {
+            toast.error("Missing PID for this user.");
+            return;
+        }
+        if (password.trim().length < 6) {
+            toast.error("Password must be at least 6 characters");
+            return;
+        }
+
+        setIsResetting(true);
+
+        const req = fetch(`/api/merchant/user/${selected.pid}/password-reset`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reset_password: password }),
+        }).then(async (res) => {
+            const data = await res.json().catch(() => ({} as unknown));
+            if (!res.ok) {
+                const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
+                throw new Error(msg);
+            }
+            return data;
+        });
+
+        await toast.promise(req, {
+            loading: "Resetting password...",
+            success: "Password reset successfully.",
+            error: (e) => (e instanceof Error ? e.message : "Failed to reset password."),
+        });
+
+        setIsResetting(false);
+        setResetOpen(false);
+        setPassword("");
+        router.refresh();
+    };
+
+    // ====== TOGGLE STATUS (POST) ======
+    const openToggleConfirm = (row: User) => {
+        setSelected(row);
+        setConfirmToggleOpen(true);
+    };
+
+    const doToggle = async () => {
+        if (!selected) return;
+        if (!selected.pid) {
+            toast.error("Missing PID for this user.");
+            return;
+        }
+
+        const targetStatus = selected.status === "active" ? "disable" : "active";
+        setIsToggling(true);
+
+        const req = fetch(`/api/merchant/user/${selected.pid}/approved`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: targetStatus }),
+        }).then(async (res) => {
+            const data = await res.json().catch(() => ({} as unknown));
+            if (!res.ok) {
+                const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
+                throw new Error(msg);
+            }
+            return data;
+        });
+
+        await toast.promise(req, {
+            loading: selected.status === "active" ? "Deactivating user..." : "Activating user...",
+            success: "User status updated.",
+            error: (e) => (e instanceof Error ? e.message : "Failed to update status."),
+        });
+
+        setIsToggling(false);
+        setConfirmToggleOpen(false);
+        router.refresh();
+    };
+
+    return (
+        <Card className="space-y-4 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                <div>
+                    <h1 className="text-xl font-semibold">Staff List</h1>
+                    <p className="text-sm text-muted-foreground">All staff in your system.</p>
+                </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-between gap-3">
+                {/* Search */}
+                <Input
+                    placeholder="Search by StoreID, name, email, phone, brand, username..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="sm:max-w-md"
+                    aria-label="Search users"
+                />
+                <div className="flex items-center gap-2">
+                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "active" | "inactive" | "all")}>
+                        <SelectTrigger className="w-[160px]" aria-label="Filter by status">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button
+                        className="bg-customViolet text-white hover:bg-customViolet/90"
+                        onClick={() => setAddOpen(true)}
+                    >
+                        Add Staff
+                    </Button>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="rounded-sm border bg-white overflow-hidden overflow-x-auto">
+                <Table className="min-w-[1000px] text-sm">
+                    <TableHeader>
+                        <TableRow className="hover:bg-customViolet bg-customViolet text-white">
+                            <TableHead className="text-white">Name</TableHead>
+                            <TableHead className="text-white">Username</TableHead>
+                            <TableHead className="text-white">Email</TableHead>
+                            <TableHead className="text-white">Phone</TableHead>
+                            <TableHead className="text-white text-left">Role</TableHead>
+                            <TableHead className="text-white">Status</TableHead>
+                            <TableHead className="text-white text-left">Action</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filtered.map((row) => (
+                            <TableRow key={row.id} className="hover:bg-gray-50">
+                                <TableCell>{row.name}</TableCell>
+                                <TableCell>{row.username ?? "—"}</TableCell>
+                                <TableCell>{row.email}</TableCell>
+                                <TableCell>{row.phone}</TableCell>
+                                <TableCell>{row.role}</TableCell>
+                                <TableCell>
+                                    <Badge className={clsx("capitalize", row.status === "active" ? "bg-green-600" : "bg-red-600")}>
+                                        {row.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-left">
+                                    <div className="flex items-center gap-1">
+                                        {/* Edit */}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            title="Edit"
+                                            onClick={() => openEdit(row)}
+                                            aria-label="Edit"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        {/* Reset Password */}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            title="Reset Password"
+                                            onClick={() => openReset(row)}
+                                            aria-label="Reset Password"
+                                        >
+                                            <TbPasswordUser size={20} />
+                                        </Button>
+                                        {/* Toggle Status */}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            title={row.status === "active" ? "Deactivate" : "Activate"}
+                                            onClick={() => openToggleConfirm(row)}
+                                            aria-label="Toggle Status"
+                                        >
+                                            <RefreshCcw className={clsx("h-4 w-4", row.status === "active" ? "text-orange-400" : "text-green-500")} />
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        {filtered.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={11} className="h-24 text-center text-sm text-muted-foreground">
+                                    No users found on this page.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Numbered Pagination */}
+            <div className="flex items-center justify-center sm:justify-end py-4">
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={!canPrev}
+                    >
+                        Previous
+                    </Button>
+
+                    {pages[0] !== 1 && (
+                        <>
+                            <Button variant="outline" size="sm" onClick={() => goToPage(1)}>
+                                1
+                            </Button>
+                            {pages[0] > 2 && <span className="px-1">…</span>}
+                        </>
+                    )}
+
+                    {pages.map((p) => (
+                        <Button
+                            key={p}
+                            variant={p === currentPage ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => goToPage(p)}
+                            className={p === currentPage ? "bg-customViolet text-white hover:bg-customViolet/90" : ""}
+                        >
+                            {p}
+                        </Button>
+                    ))}
+
+                    {pages[pages.length - 1] !== totalPages && (
+                        <>
+                            {pages[pages.length - 1] < totalPages - 1 && <span className="px-1">…</span>}
+                            <Button variant="outline" size="sm" onClick={() => goToPage(totalPages)}>
+                                {totalPages}
+                            </Button>
+                        </>
+                    )}
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={!canNext}
+                    >
+                        Next
+                    </Button>
+                </div>
+            </div>
+
+            {/* === Add User Dialog === */}
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Create Staff</DialogTitle>
+                        <DialogDescription>Fill the form and submit to create a new staff.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="first_name">First Name</Label>
+                                <Input
+                                    id="first_name"
+                                    value={addForm.first_name}
+                                    onChange={(e) => setAddForm((f) => ({ ...f, first_name: e.target.value }))}
+                                />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="last_name">Last Name</Label>
+                                <Input
+                                    id="last_name"
+                                    value={addForm.last_name}
+                                    onChange={(e) => setAddForm((f) => ({ ...f, last_name: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={addForm.email}
+                                onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="username">Username</Label>
+                                <Input
+                                    id="username"
+                                    value={addForm.username}
+                                    onChange={(e) => setAddForm((f) => ({ ...f, username: e.target.value }))}
+                                />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="phone_number">Phone Number</Label>
+                                <Input
+                                    id="phone_number"
+                                    value={addForm.phone_number}
+                                    onChange={(e) => setAddForm((f) => ({ ...f, phone_number: e.target.value }))}
+                                />
+                            </div>
+
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="password">Password</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showAddPassword ? "text" : "password"}
+                                        value={addForm.password}
+                                        onChange={(e) => setAddForm((f) => ({ ...f, password: e.target.value }))}
+                                        placeholder="At least 6 characters"
+                                    />
+                                    <button
+                                        type="button"
+                                        aria-label={showAddPassword ? "Hide password" : "Show password"}
+                                        className="absolute inset-y-0 right-2 flex items-center"
+                                        onClick={() => setShowAddPassword((s) => !s)}
+                                    >
+                                        {showAddPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="role">Role</Label>
+                                <select
+                                    id="role"
+                                    value={addForm.role}
+                                    onChange={(e) => setAddForm((f) => ({ ...f, role: e.target.value }))}
+                                    className="block w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+                                >
+                                    <option value="1">Role 1</option>
+                                    <option value="3">Role 3</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <DialogClose asChild>
+                            <Button variant="outline" className="cursor-pointer" disabled={creating}>
+                                Cancel
+                            </Button>
+                        </DialogClose>
+                        <Button
+                            onClick={createUser}
+                            disabled={!requiredFilled || creating}
+                            title={!requiredFilled ? "Fill all fields (password ≥ 6 chars)" : "Create user"}
+                            className="bg-customViolet hover:bg-customViolet/90 cursor-pointer"
+                        >
+                            {creating ? "Creating..." : "Create"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* === Edit User Dialog (ALL fields) === */}
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Edit User</DialogTitle>
+                        <DialogDescription>Update user details below.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="edit_first_name">First Name</Label>
+                                <Input
+                                    id="edit_first_name"
+                                    value={editForm.first_name}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))}
+                                />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="edit_last_name">Last Name</Label>
+                                <Input
+                                    id="edit_last_name"
+                                    value={editForm.last_name}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, last_name: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="edit_email">Email</Label>
+                                <Input
+                                    id="edit_email"
+                                    type="email"
+                                    value={editForm.email}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                                />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="edit_username">Username</Label>
+                                <Input
+                                    id="edit_username"
+                                    value={editForm.username}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="edit_phone">Phone Number</Label>
+                                <Input
+                                    id="edit_phone"
+                                    value={editForm.phone_number}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <DialogClose asChild>
+                            <Button variant="outline" className="cursor-pointer" disabled={isUpdating}>
+                                Cancel
+                            </Button>
+                        </DialogClose>
+                        <Button
+                            onClick={saveEdit}
+                            disabled={isUpdating}
+                            className="bg-customViolet hover:bg-customViolet/90 cursor-pointer"
+                        >
+                            {isUpdating ? "Saving..." : "Save"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* === Reset Password Dialog === */}
+            <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+                <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                        <DialogTitle>Reset Password</DialogTitle>
+                        <DialogDescription>Set a new password for {selected?.name ?? "user"}.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <div className="relative">
+                            <Input
+                                id="new-password"
+                                type={showPassword ? "text" : "password"}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter new password"
+                            />
+                            <button
+                                type="button"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                className="absolute inset-y-0 right-2 flex items-center"
+                                onClick={() => setShowPassword((s) => !s)}
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <DialogClose asChild>
+                            <Button variant="outline" disabled={isResetting}>Cancel</Button>
+                        </DialogClose>
+                        <Button
+                            onClick={confirmReset}
+                            disabled={password.trim().length < 6 || isResetting}
+                            title={password.trim().length < 6 ? "Password must be at least 6 characters" : "Confirm reset"}
+                            className="bg-customViolet hover:bg-customViolet/90 cursor-pointer"
+                        >
+                            {isResetting ? "Please wait..." : "Confirm"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* === Toggle Status Confirm === */}
+            <AlertDialog open={confirmToggleOpen} onOpenChange={setConfirmToggleOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {selected?.status === "active" ? "Deactivate user?" : "Activate user?"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {selected
+                                ? `Are you sure you want to ${selected.status === "active" ? "deactivate" : "activate"} “${selected.name}”?`
+                                : "Are you sure?"}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isToggling}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={doToggle}
+                            disabled={isToggling}
+                            className="bg-customViolet hover:bg-customViolet/90"
+                        >
+                            {isToggling ? "Please wait..." : "Yes"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </Card>
+    );
+}

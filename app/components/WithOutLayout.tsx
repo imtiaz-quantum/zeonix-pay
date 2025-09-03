@@ -27,18 +27,17 @@ type WithOutLayoutProps = {
 
 export default function WithOutLayout({
   children,
-  role,
   balance,
   profileData,
 }: WithOutLayoutProps) {
   const pathname = usePathname(); 
 
   // check is dashboard 
-  const isDashboardPath = /^\/(admin|merchant)(\/|$)/.test(pathname);
+  const isDashboardPath = /^\/(admin|merchant|staff)(\/|$)/.test(pathname);
   
 
   return isDashboardPath &&  !(pathname.includes("api-docs"))? (
-    <CustomLayout role={role} balance={balance} profileData={profileData?? null}>
+    <CustomLayout balance={balance} profileData={profileData?? null}>
       {children}
     </CustomLayout>
   ) : (

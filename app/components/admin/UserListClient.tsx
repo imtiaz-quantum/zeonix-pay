@@ -99,7 +99,7 @@ export default function UserListClient({ userListPromise,
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialData  = use(userListPromise);
+  const initialData = use(userListPromise);
 
 
   // Normalize server data to table rows
@@ -433,6 +433,17 @@ export default function UserListClient({ userListPromise,
           <h1 className="text-xl font-semibold">Users List</h1>
           <p className="text-sm text-muted-foreground">All staff in your system.</p>
         </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between gap-3">
+      {/* Search */}
+        <Input
+          placeholder="Search by storeID, name, email, phone, brand, username..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="sm:max-w-md"
+          aria-label="Search users"
+        />
         <div className="flex items-center gap-2">
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "active" | "inactive" | "all")}>
             <SelectTrigger className="w-[160px]" aria-label="Filter by status">
@@ -451,17 +462,6 @@ export default function UserListClient({ userListPromise,
             Add User
           </Button>
         </div>
-      </div>
-
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Input
-          placeholder="Search by storeID, name, email, phone, brand, username..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="sm:max-w-md"
-          aria-label="Search users"
-        />
       </div>
 
       {/* Table */}

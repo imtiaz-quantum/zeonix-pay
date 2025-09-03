@@ -61,7 +61,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >  <Providers session={session}>
-          <WithOutLayout role={role ?? undefined} balance={balance} profileData={profileData}> {children}</WithOutLayout>
+          <WithOutLayout balance={balance} profileData={profileData}> {children}</WithOutLayout>
           <Toaster position="bottom-right" />
         </Providers>
 

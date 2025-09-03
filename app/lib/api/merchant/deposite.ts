@@ -42,6 +42,6 @@ import { ApiResponse } from "../../types/deposit";
 export async function getDepositList(page = 1) {
   return serverGet<ApiResponse>(
     `/u/invoice/invoices/?page=${page}&page_size=10`,
-    { cache: "force-cache" }
+    { cache: "no-cache" }
   );
 }

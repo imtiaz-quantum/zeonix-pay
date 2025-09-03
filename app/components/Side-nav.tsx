@@ -13,6 +13,7 @@ import {
   LogOut,
   Users,
   UserCog,
+  MonitorSmartphone,
 } from "lucide-react";
 import { Wallet, Eye, EyeOff } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@radix-ui/react-collapsible";
 import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
 
 /* const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -52,23 +54,20 @@ import Image from "next/image";
 type SideNavProps = {
   collapsed: boolean;
   toggleSidebar: () => void;
-  role?: 'admin' | 'merchant' | 'staff';
   balance: string
 };
 
 
 
-export function SideNav({ role, collapsed, toggleSidebar, balance }: SideNavProps) {
+export function SideNav({ collapsed, toggleSidebar, balance }: SideNavProps) {
   const pathname = usePathname();
   const [activeSubItem, setActiveSubItem] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-  // Balance state
-console.log(role)
   const [showBalance, setShowBalance] = useState(true);
-
-  // Track which popover is open (when collapsed)
   const [openId, setOpenId] = useState<string | null>(null);
+  const { role } = useAuth();
 
+console.log(role);
 
   // Filter items based on user role
   const navItems = useMemo(() => {
@@ -99,6 +98,7 @@ console.log(role)
           ],
         }, */
         { href: "/staff/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
+        { href: "/staff/device", icon: MonitorSmartphone, label: "Device" },
      /*    { href: "/staff/settings", icon: Settings, label: "Settings" }, */
       ];
     } else if (role === "merchant") {

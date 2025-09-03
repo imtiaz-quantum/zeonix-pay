@@ -92,9 +92,9 @@ export default async function page() {
           />
         </div>
       )}
-      <Suspense fallback={<StatCardSkeleton />}>
+{/*       <Suspense fallback={<StatCardSkeleton />}>
         <StatCards statsCardsPromise={statsCardsPromise} />
-      </Suspense>
+      </Suspense> */}
       <Card className="overflow-x-auto">
         <CardHeader>
           <CardTitle className="font-headline">Recent Transactions</CardTitle>
