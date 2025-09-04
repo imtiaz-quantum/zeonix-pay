@@ -77,10 +77,6 @@ type User = {
   username?: string;
 };
 
-type Props = {
-  initialData: InitialPayload;
-  currentPage: number;
-};
 
 function getPageRange(current: number, total: number, max = 7) {
   if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);

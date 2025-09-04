@@ -67,7 +67,7 @@ export function SideNav({ collapsed, toggleSidebar, balance }: SideNavProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const { role } = useAuth();
 
-console.log(role);
+  console.log(role);
 
   // Filter items based on user role
   const navItems = useMemo(() => {
@@ -80,26 +80,27 @@ console.log(role);
         { href: "/admin/payout", icon: Send, label: "Payout" },
         { href: "/admin/payment-withdrawal", icon: Landmark, label: "Payment Withdrawal" },
         { href: "/admin/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
-   /*      { href: "/admin/settings", icon: Settings, label: "Settings" }, */
+        { href: "/admin/device", icon: MonitorSmartphone, label: "Device" },
+        /*      { href: "/admin/settings", icon: Settings, label: "Settings" }, */
       ];
     } else if (role === "staff") {
       return [
         { href: "/staff/dashboard", icon: LayoutDashboard, label: "Dashboard" },
         { href: "/staff/deposit", icon: ArrowRightLeft, label: "Deposit" },
-         { href: "/merchant/payout", icon: Send, label: "Payout" },
-       /*  {
-          href: "/staff/payment-withdrawal",
-          icon: Landmark,
-          label: "Payment Withdrawal",
-          subItems: [
-            { href: "/staff/payment-withdrawal/request", label: "Request Withdrawal" },
-            { href: "/staff/payment-withdrawal/report", label: "Withdrawal Report" },
-            { href: "/staff/payment-withdrawal/methods", label: "Payment Methods" },
-          ],
-        }, */
+        { href: "/staff/payout", icon: Send, label: "Payout" },
+        /*  {
+           href: "/staff/payment-withdrawal",
+           icon: Landmark,
+           label: "Payment Withdrawal",
+           subItems: [
+             { href: "/staff/payment-withdrawal/request", label: "Request Withdrawal" },
+             { href: "/staff/payment-withdrawal/report", label: "Withdrawal Report" },
+             { href: "/staff/payment-withdrawal/methods", label: "Payment Methods" },
+           ],
+         }, */
         { href: "/staff/all-transaction", icon: BanknoteArrowDown, label: "All Transaction" },
-        { href: "/staff/device", icon: MonitorSmartphone, label: "Device" },
-     /*    { href: "/staff/settings", icon: Settings, label: "Settings" }, */
+/*         { href: "/staff/device", icon: MonitorSmartphone, label: "Device" }, */
+        /*    { href: "/staff/settings", icon: Settings, label: "Settings" }, */
       ];
     } else if (role === "merchant") {
       return [

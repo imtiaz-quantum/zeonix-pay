@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 // GET all payment methods
 export async function GET() {
-  const { data, status, ok } = await apiRequest("/u/wallet/payment-methods/", {
+  const { data, status } = await apiRequest("/u/wallet/payment-methods/", {
     method: "GET",
   });
 
@@ -14,7 +14,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const payload = await req.json();
 
-  const { data, status, ok } = await apiRequest("/u/wallet/payment-methods/", {
+  const { data, status } = await apiRequest("/u/wallet/payment-methods/", {
     method: "POST",
     body: JSON.stringify(payload),
   });

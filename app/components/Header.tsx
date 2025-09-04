@@ -1,10 +1,7 @@
 "use client";
 
 import {
-  Search,
-  Bell,
   User,
-  CreditCard,
   Settings,
   LogOut,
   ChevronRight,
@@ -21,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { signOut } from "next-auth/react";
 import { useState } from "react";

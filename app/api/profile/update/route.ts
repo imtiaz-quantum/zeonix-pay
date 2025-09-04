@@ -12,7 +12,7 @@ const BASE = process.env.BASE_URL!;
 export async function PUT(req: Request) {
   const payload = await req.json();
 
-  const { data, status, ok } = await apiRequest("/user/merchant-profile/", {
+  const { data, status } = await apiRequest("/user/merchant-profile/", {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const payload = await req.json();
 
-  const { data, status, ok } = await apiRequest("/user/profile/", {
+  const { data, status } = await apiRequest("/user/profile/", {
     method: "PATCH",
     body: JSON.stringify(payload),
   });

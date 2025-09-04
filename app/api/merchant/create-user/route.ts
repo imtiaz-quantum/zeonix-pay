@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const payload = await req.json();
 
-  const { data, status, ok } = await apiRequest("/auth/merchant/register/", {
+  const { data, status } = await apiRequest("/auth/merchant/register/", {
     method: "POST",
     body: JSON.stringify(payload),
   });

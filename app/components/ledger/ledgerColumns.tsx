@@ -133,6 +133,24 @@ export const baseColumns: ColumnDef<Ledger>[] = [
     },
   },
   {
+    accessorKey: "source",
+    header: ({ column }) => (
+      <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+        Source
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const t = (row.getValue("source") as string) ?? "";
+      return (
+        <Badge className={`capitalize ${typeBg(t)}`}>
+          {t}
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => value.includes(row.getValue(id)),
+  },
+  {
     accessorKey: "tran_type",
     header: ({ column }) => (
       <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>

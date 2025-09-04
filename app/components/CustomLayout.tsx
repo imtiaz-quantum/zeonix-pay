@@ -15,7 +15,7 @@ export type BrandInfo = {
   is_active: boolean;
 };
 
-type Role = "admin" | "merchant" | "staff";
+//type Role = "admin" | "merchant" | "staff";
 
 type CustomLayoutProps = {
   children: ReactNode;

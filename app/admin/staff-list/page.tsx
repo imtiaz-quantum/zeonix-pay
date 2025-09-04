@@ -1,6 +1,5 @@
 import StaffListClient from "@/app/components/admin/StaffListClient";
 import { getStaffList } from "@/app/lib/api/admit/staff-list";
-import { getUserList } from "@/app/lib/api/admit/user-list";
 
 type PageProps = {
   searchParams: Promise<{ page?: string }>;

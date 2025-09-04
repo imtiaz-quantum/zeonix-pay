@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/apiRequest";
 
  // POST handler for generating API key
 export async function POST() {
-  const { data, status, ok } = await apiRequest("/app/keys/", {
+  const { data, status } = await apiRequest("/app/keys/", {
     method: "POST",
   });
 
@@ -15,7 +15,7 @@ export async function POST() {
 export async function PATCH(req: Request) {
   const { is_active } = await req.json();
 
-  const { data, status, ok } = await apiRequest("/app/keys/", {
+  const { data, status } = await apiRequest("/app/keys/", {
     method: "PATCH",
     body: JSON.stringify({is_active}),
   });

@@ -36,12 +36,12 @@ const cardData = {
 export default async function page() {
   const role = await getUserRole();
   const walletTrnxPromise = getWalletTransactions();
-  const statsCardsPromise = role !== "admin" ? getOverview() : null;
+  const statsCardsPromise = role === "merchant" ? getOverview() : null;
   
 
   return (
     <div className="grid gap-6">
-      {role === "admin" && (
+      {role !== "merchant" && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Completed Withdrawals"
@@ -92,9 +92,9 @@ export default async function page() {
           />
         </div>
       )}
-{/*       <Suspense fallback={<StatCardSkeleton />}>
+      <Suspense fallback={<StatCardSkeleton />}>
         <StatCards statsCardsPromise={statsCardsPromise} />
-      </Suspense> */}
+      </Suspense>
       <Card className="overflow-x-auto">
         <CardHeader>
           <CardTitle className="font-headline">Recent Transactions</CardTitle>

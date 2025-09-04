@@ -1,23 +1,11 @@
 import { apiRequest } from "@/lib/apiRequest";
 import { NextResponse } from "next/server";
 
-
-export const dynamic = "force-dynamic";
-
-/* // GET all payment methods
-export async function GET() {
-  const { data, status, ok } = await apiRequest("/u/wallet/payment-methods/", {
-    method: "GET",
-  });
-
-  return NextResponse.json(data, { status });
-} */
-
-// CREATE new method
+// CREATE new device
 export async function POST(req: Request) {
   const payload = await req.json();
-
-  const { data, status } = await apiRequest("/auth/admin/register/", {
+console.log(payload)
+  const { data, status } = await apiRequest("/admin/sms-device-keys/", {
     method: "POST",
     body: JSON.stringify(payload),
   });

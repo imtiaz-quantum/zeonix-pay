@@ -33,7 +33,7 @@ import { Landmark, Smartphone, Coins } from "lucide-react";
 import { MdOutlinePayment } from "react-icons/md";
 import clsx from "clsx";
 import PaymentMethodsList from "./list";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import PaymentMethodsSkeleton from "../../skeletons/PaymentMethodsSkeleton";
 import { ApiResponse, BankMeta, CryptoMeta, Method, MobileBankingMeta } from "@/app/lib/types/payment-method";
@@ -109,7 +109,7 @@ const AddMethod = ({ paymentMethodListPromise}:{ paymentMethodListPromise: Promi
   const [cryptoId, setCryptoId] = useState("");
 
   const router = useRouter();
-  const searchParams = useSearchParams();
+//  const searchParams = useSearchParams();
   const {data} = use(paymentMethodListPromise);
 
 

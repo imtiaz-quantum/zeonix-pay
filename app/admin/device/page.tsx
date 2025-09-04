@@ -1,4 +1,3 @@
-import StaffListClient from "@/app/components/admin/StaffListClient";
 import DeviceList from "@/app/components/staff/deviceList";
 import { getDeviceList } from "@/app/lib/api/admit/staff/deviceList";
 

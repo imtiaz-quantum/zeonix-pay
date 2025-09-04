@@ -37,13 +37,13 @@ import { ApiResponse } from "@/app/lib/types/deposit";
 import { useAuth } from "@/hooks/useAuth";
 import { getDepositColumns } from "./depositColumns";
 
-const statusOptions = [
+/* const statusOptions = [
   { value: "active", label: "Active" },
   { value: "pending", label: "Pending" },
   { value: "inactive", label: "Inactive" },
   { value: "success", label: "Success" },
   { value: "failed", label: "Failed" },
-];
+]; */
 
 const payStatusOptions = [
   { value: "paid", label: "Paid" },

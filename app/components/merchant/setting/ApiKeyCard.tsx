@@ -1,6 +1,6 @@
 "use client";
 import { use, useState } from "react";
-import { ToggleLeft, ToggleRight, Copy, Eye, EyeOff } from "lucide-react";
+import { ToggleLeft, ToggleRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { RevealableField } from "./RevealableField";

@@ -5,8 +5,8 @@ type Device = {
     device_key: string;
     device_pin: string;
     is_active: boolean;
-    created_at: string;
-    updated_at: string;
+    create_at: string;
+    updated_ta: string;
     user: number;
 };
 

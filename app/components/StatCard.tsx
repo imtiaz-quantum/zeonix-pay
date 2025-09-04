@@ -6,7 +6,6 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { ReactNode } from "react";
-import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 type StatCardProps = {
   title: string;
@@ -23,13 +22,10 @@ type StatCardProps = {
 export const StatCard = ({
   title,
   amount,
-  subtitle,
   icon,
   bgColor,
   iconBg,
   iconColor,
-  change,
-  positive,
 }: StatCardProps) => {
   return (
     <Card className={`w-full rounded-xl ${bgColor} border-none shadow-sm`}>
