@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import * as React from "react";
 import {
   ColumnFiltersState,
   SortingState,
@@ -14,40 +14,23 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { DataTableFacetedFilter } from "@/app/components/data-table-faceted-filter";
+import { getPayoutColumns } from "@/components/payout/payoutColumns";
+import { DataTableFacetedFilter } from "@/components/data-table-faceted-filter";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ApiResponse } from "@/app/lib/types/deposit";
+import { ApiResponse } from "@/app/lib/types/payout";
 import { useAuth } from "@/hooks/useAuth";
-import { getDepositColumns } from "./depositColumns";
 
-/* const statusOptions = [
+
+const statusOptions = [
   { value: "active", label: "Active" },
   { value: "pending", label: "Pending" },
   { value: "inactive", label: "Inactive" },
   { value: "success", label: "Success" },
-  { value: "failed", label: "Failed" },
-]; */
-
-const payStatusOptions = [
-  { value: "paid", label: "Paid" },
-  { value: "unpaid", label: "Unpaid" },
   { value: "failed", label: "Failed" },
 ];
 
@@ -60,27 +43,27 @@ const methodOptions = [
 
 
 
-export default function DepositTable({
-  depositListPromise,
+export default function PayoutTable({
+  payoutListPromise,
   currentPage,
 }: {
-  depositListPromise: Promise<ApiResponse>;
+  payoutListPromise: Promise<ApiResponse>;
   currentPage: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Resolve data provided by the server (Suspense handles loading)
-  const payload = use(depositListPromise);
+  const payload = React.use(payoutListPromise);
   const rows = payload.data;
+   const { user } = useAuth();
+    const isAdmin = (user?.role ?? "").toLowerCase() === "admin";
+    const columns = React.useMemo(() => getPayoutColumns(isAdmin), [isAdmin]);
 console.log(rows);
- const { user } = useAuth();
-  const isAdmin = (user?.role ?? "").toLowerCase() === "admin";
-  const columns = useMemo(() => getDepositColumns(isAdmin), [isAdmin]);
 
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
 
   const table = useReactTable({
     data: rows,
@@ -97,22 +80,24 @@ console.log(rows);
     state: { sorting, columnFilters, columnVisibility },
   });
 
-  const pageSizeRef = useRef<number>(rows.length || 1);
-
-  useEffect(() => {
-    if (payload.next) {
-      pageSizeRef.current = Math.max(pageSizeRef.current, rows.length || 1);
+  // ---------- Stable page size (prevents ghost pages) ----------
+  // Lock the largest page size we’ve seen; don’t shrink on last page.
+  const pageSizeRef = React.useRef<number>(rows.length || 1);
+  React.useEffect(() => {
+    if ((rows?.length || 0) > pageSizeRef.current) {
+      pageSizeRef.current = rows.length;
     }
-    if (!payload.next && !payload.previous) {
+    // If there’s only one page total (count <= current page size), make sure ref matches.
+    if (payload.count <= (rows.length || 1)) {
       pageSizeRef.current = rows.length || 1;
     }
-  }, [payload.next, payload.previous, rows.length]);
+  }, [rows.length, payload.count]);
 
-  const pageSize = pageSizeRef.current || 1;
+  const pageSize = Math.max(1, pageSizeRef.current);
   const totalPages = Math.max(1, Math.ceil(payload.count / pageSize));
 
-  // If someone navigates past totalPages via URL, clamp them back.
-  useEffect(() => {
+  // If user navigated past the last page via URL, clamp back.
+  React.useEffect(() => {
     if (currentPage > totalPages) {
       const params = new URLSearchParams(searchParams?.toString() || "");
       params.set("page", String(totalPages));
@@ -120,8 +105,8 @@ console.log(rows);
     }
   }, [currentPage, totalPages, router, searchParams]);
 
-  const canPrev = currentPage > 1 && Boolean(payload.previous);
-  const canNext = currentPage < totalPages && Boolean(payload.next);
+  const canPrev = currentPage > 1;
+  const canNext = currentPage < totalPages;
 
   const goToPage = (page: number) => {
     const target = Math.min(Math.max(1, page), totalPages);
@@ -131,7 +116,7 @@ console.log(rows);
     router.push(`?${params.toString()}`);
   };
 
-  // Build a compact page range like: 1 … 4 5 [6] 7 8 … 20
+  // -------- Numbered page range (1 … 4 5 [6] 7 8 … N) --------
   const getPageRange = (current: number, total: number, max = 7) => {
     if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
     const half = Math.floor(max / 2);
@@ -143,41 +128,20 @@ console.log(rows);
   const pages = getPageRange(currentPage, totalPages, 7);
 
   return (
-    <div className="w-full overflow-hidden">
+    <div className="w-full">
       <div className="flex items-center py-4 gap-2">
         <Input
-          placeholder="Filter by transaction_id…"
-          value={(table.getColumn("transaction_id")?.getFilterValue() as string) ?? ""}
-          onChange={(e) => table.getColumn("transaction_id")?.setFilterValue(e.target.value)}
-          className="md:max-w-sm flex-1"
-        />
-{/*         <Input
-          placeholder="Filter by invoice_payment_id…"
-          value={(table.getColumn("invoice_payment_id")?.getFilterValue() as string) ?? ""}
-          onChange={(e) => table.getColumn("invoice_payment_id")?.setFilterValue(e.target.value)}
-          className="max-w-sm flex-1"
+          placeholder="Filter by trx_id…"
+          value={(table.getColumn("trx_id")?.getFilterValue() as string) ?? ""}
+          onChange={(e) => table.getColumn("trx_id")?.setFilterValue(e.target.value)}
+          className="max-w-sm"
         />
 
         {table.getColumn("status") && (
-          <DataTableFacetedFilter
-            column={table.getColumn("status")}
-            title="Status"
-            options={statusOptions}
-          />
-        )} */}
-        {table.getColumn("pay_status") && (
-          <DataTableFacetedFilter
-            column={table.getColumn("pay_status")}
-            title="Pay Status"
-            options={payStatusOptions}
-          />
+          <DataTableFacetedFilter column={table.getColumn("status")} title="Status" options={statusOptions} />
         )}
-        {table.getColumn("method") && (
-          <DataTableFacetedFilter
-            column={table.getColumn("method")}
-            title="Method"
-            options={methodOptions}
-          />
+        {table.getColumn("payment_method") && (
+          <DataTableFacetedFilter column={table.getColumn("payment_method")} title="Method" options={methodOptions} />
         )}
 
         <DropdownMenu>
@@ -204,9 +168,9 @@ console.log(rows);
         </DropdownMenu>
       </div>
 
-      <div className="rounded-md border overflow-hidden overflow-x-auto">
+      <div className="rounded-md border overflow-hidden">
         <Table>
-          <TableHeader className="bg-customViolet hover:bg-customViolet">
+          <TableHeader className="bg-customViolet hover:bg-customViolet text-white">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-customViolet">
                 {hg.headers.map((h) => (
@@ -222,7 +186,7 @@ console.log(rows);
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell  key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))
@@ -241,12 +205,7 @@ console.log(rows);
       <div className="flex items-center justify-end py-4">
         <div />
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={!canPrev}
-          >
+          <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={!canPrev}>
             Previous
           </Button>
 
@@ -280,12 +239,7 @@ console.log(rows);
             </>
           )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(currentPage + 1)}
-            disabled={!canNext}
-          >
+          <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={!canNext}>
             Next
           </Button>
         </div>

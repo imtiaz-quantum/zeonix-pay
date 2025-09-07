@@ -1,4 +1,4 @@
-import ProfilePage from '@/app/components/profile/profile';
+import ProfilePage from '@/components/profile/profile';
 import { getProfile } from '@/app/lib/api/merchant/profile';
 import React from 'react'
 

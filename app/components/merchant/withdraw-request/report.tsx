@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { getReportColumns } from "@/app/components/merchant/withdraw-request/reportColumns";
-import { DataTableFacetedFilter } from "@/app/components/data-table-faceted-filter";
+import { DataTableFacetedFilter } from "@/components/data-table-faceted-filter";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiResponse } from "@/app/lib/types/withdraw-request";
 import { useAuth } from "@/hooks/useAuth";

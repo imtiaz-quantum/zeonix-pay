@@ -74,6 +74,7 @@ type User = {
   payout_fees: string;
   withdraw_fees: string;
   brand_name?: string;
+  domain_name?: string;
   username?: string;
 };
 
@@ -96,6 +97,7 @@ export default function UserListClient({ userListPromise,
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialData = use(userListPromise);
+  console.log(initialData)
 
 
   // Normalize server data to table rows
@@ -115,6 +117,7 @@ export default function UserListClient({ userListPromise,
       payout_fees: u.merchant?.payout_fees ?? "0.00",
       withdraw_fees: u.merchant?.withdraw_fees ?? "0.00",
       brand_name: u.merchant?.brand_name ?? "",
+      domain_name: u.merchant?.domain_name ?? "",
       username: u.username,
     }));
   }, [initialData]);
@@ -133,6 +136,7 @@ export default function UserListClient({ userListPromise,
         row.phone.includes(term) ||
         row.storeId.toLowerCase().includes(term) ||
         (row.brand_name ?? "").toLowerCase().includes(term) ||
+        (row.domain_name ?? "").toLowerCase().includes(term) ||
         (row.username ?? "").toLowerCase().includes(term);
       const matchesStatus = statusFilter === "all" || row.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -190,6 +194,7 @@ export default function UserListClient({ userListPromise,
     password: "",
     phone_number: "",
     brand_name: "",
+    domain_name: "",
     deposit_fees: "",
     payout_fees: "",
     withdraw_fees: "",
@@ -204,6 +209,7 @@ export default function UserListClient({ userListPromise,
     addForm.password.trim().length >= 6 &&
     addForm.phone_number.trim() &&
     addForm.brand_name.trim() &&
+    addForm.domain_name.trim() &&
     addForm.deposit_fees.trim() &&
     addForm.payout_fees.trim() &&
     addForm.withdraw_fees.trim()
@@ -217,6 +223,7 @@ export default function UserListClient({ userListPromise,
     username: "",
     phone_number: "",
     brand_name: "",
+    domain_name: "",
     deposit_fees: "",
     payout_fees: "",
     withdraw_fees: "",
@@ -256,6 +263,7 @@ export default function UserListClient({ userListPromise,
       password: "",
       phone_number: "",
       brand_name: "",
+      domain_name: "",
       deposit_fees: "",
       payout_fees: "",
       withdraw_fees: "",
@@ -274,6 +282,7 @@ export default function UserListClient({ userListPromise,
       username: row.username || "",
       phone_number: row.phone || "",
       brand_name: row.brand_name || "",
+      domain_name: row.domain_name || "",
       deposit_fees: row.deposit_fees || "",
       payout_fees: row.payout_fees || "",
       withdraw_fees: row.withdraw_fees || "",
@@ -306,12 +315,13 @@ export default function UserListClient({ userListPromise,
       phone_number: editForm.phone_number,
       merchant: {
         brand_name: editForm.brand_name,
+        domain_name: editForm.domain_name,
         deposit_fees: editForm.deposit_fees,
         payout_fees: editForm.payout_fees,
         withdraw_fees: editForm.withdraw_fees,
       },
     };
-
+console.log(selected.pid)
     const req = fetch(`/api/merchant/user/${selected.pid}/update`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -432,7 +442,7 @@ export default function UserListClient({ userListPromise,
       </div>
 
       <div className="flex flex-col sm:flex-row justify-between gap-3">
-      {/* Search */}
+        {/* Search */}
         <Input
           placeholder="Search by storeID, name, email, phone, brand, username..."
           value={search}
@@ -622,15 +632,25 @@ export default function UserListClient({ userListPromise,
                 />
               </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={addForm.email}
-                onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
-              />
+              <div className="grid gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={addForm.email}
+                  onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="phone_number">Phone Number</Label>
+                <Input
+                  id="phone_number"
+                  value={addForm.phone_number}
+                  onChange={(e) => setAddForm((f) => ({ ...f, phone_number: e.target.value }))}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -666,19 +686,19 @@ export default function UserListClient({ userListPromise,
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="phone_number">Phone Number</Label>
-                <Input
-                  id="phone_number"
-                  value={addForm.phone_number}
-                  onChange={(e) => setAddForm((f) => ({ ...f, phone_number: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-1.5">
                 <Label htmlFor="brand_name">Brand Name</Label>
                 <Input
                   id="brand_name"
                   value={addForm.brand_name}
                   onChange={(e) => setAddForm((f) => ({ ...f, brand_name: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="domain_name">Domain Name (Ex: https://demo.com)</Label>
+                <Input
+                  id="domain_name"
+                  value={addForm.domain_name}
+                  onChange={(e) => setAddForm((f) => ({ ...f, domain_name: e.target.value }))}
                 />
               </div>
             </div>
@@ -797,6 +817,14 @@ export default function UserListClient({ userListPromise,
                   onChange={(e) => setEditForm((f) => ({ ...f, brand_name: e.target.value }))}
                 />
               </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit_domain_name">Domain Name</Label>
+              <Input
+                id="edit_domain_name"
+                value={editForm.domain_name}
+                onChange={(e) => setEditForm((f) => ({ ...f, domain_name: e.target.value }))}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

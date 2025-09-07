@@ -368,9 +368,9 @@ import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { Suspense } from "react";
-import DepositTableSkeleton from "@/app/components/skeletons/DepositTableSkeleton";
+import DepositTableSkeleton from "@/components/skeletons/DepositTableSkeleton";
 import { getPayoutList } from "@/app/lib/api/merchant/payout";
-import PayoutTable from "@/app/components/payout/PayoutTable";
+import PayoutTable from "@/components/payout/PayoutTable";
 
 type PageProps = {
   searchParams: Promise<{ page?: string }>; // Next 15: async

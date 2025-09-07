@@ -1,4 +1,4 @@
-import StaffListClient from "@/app/components/admin/StaffListClient";
+import StaffListClient from "@/components/admin/StaffListClient";
 import { getStaffList } from "@/app/lib/api/admit/staff-list";
 
 type PageProps = {
@@ -8,7 +8,8 @@ type PageProps = {
 export default async function UsersPage({ searchParams }: PageProps) {
   const sp = await searchParams;             
   const page = Number(sp?.page) || 1;
-  const userListPromise = getStaffList(page)
+  const devicePage = false;
+  const userListPromise = getStaffList(page, devicePage)
 
 
   return (

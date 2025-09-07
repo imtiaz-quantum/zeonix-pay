@@ -1,7 +1,8 @@
 import React, { use } from "react";
-import { StatCard } from "../StatCard";
+
 import { DollarSign, HandCoins, PiggyBank, Wallet } from "lucide-react";
 import { ApiResponse } from "@/app/lib/types/wallet-overview";
+import { StatCard } from "../StatCard";
 
 
 type DynamicTableProps = {

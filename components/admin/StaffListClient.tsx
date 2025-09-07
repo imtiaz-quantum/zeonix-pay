@@ -83,6 +83,7 @@ export default function StaffListClient({ userListPromise,
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialData = use(userListPromise);
+    console.log(initialData)
 
 
     // Normalize server data to table rows

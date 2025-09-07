@@ -1,19 +1,57 @@
 "use client";
 
-import React, { useState, useRef, useEffect, use } from "react";
+import React, { useState, useRef, useEffect, use, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Pencil, RefreshCcw, Trash2 } from "lucide-react";
+import { Check, ChevronsUpDown, Pencil, RefreshCcw, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import clsx from "clsx";
 import { Card } from "@/components/ui/card";
 import { extractErrorMessage } from "@/app/lib/utils/extractErrorMessage";
 import { useRouter, useSearchParams } from "next/navigation";
+import { InitialPayload } from "@/app/lib/types/userList";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
+/* ---------------- Types ---------------- */
 
 type Device = {
   id: number;
@@ -34,6 +72,27 @@ type ApiResponse = {
   data: Device[];
 };
 
+type Staff = {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  status: string;
+  role: string; // "Staff"
+  pid: string;
+};
+
+type AddForm = {
+  device_name: string;
+  device_pin: string;
+  staff_id?: number; // numeric id
+  is_active: boolean;
+};
+
+/* --------------- Utils ---------------- */
+
 function getPageRange(current: number, total: number, max = 7) {
   if (total <= max) return Array.from({ length: total }, (_, i) => i + 1);
   const half = Math.floor(max / 2);
@@ -43,9 +102,25 @@ function getPageRange(current: number, total: number, max = 7) {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
-const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Promise<ApiResponse>; currentPage: number }) => {
+/* ------------- Component --------------- */
+
+const DeviceList = ({
+  deviceListPromise,
+  currentPage,
+  userListPromise,
+}: {
+  deviceListPromise: Promise<ApiResponse>;
+  currentPage: number;
+  userListPromise: Promise<InitialPayload>;
+}) => {
   const initialData = use(deviceListPromise);
-  const devices = initialData?.data;
+  const devices = initialData?.data ?? [];
+
+  const staffList: Staff[] =
+    (use(userListPromise)?.data as Staff[] | undefined)?.filter(
+      (s) => s.role === "Staff"
+    ) ?? [];
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -55,18 +130,24 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
   const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [addForm, setAddForm] = useState({
+
+  const [addForm, setAddForm] = useState<AddForm>({
     device_name: "",
     device_pin: "",
+    staff_id: undefined,
     is_active: true,
   });
 
-
   // Search & status filter
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">(
+    "all"
+  );
 
-  const requiredFilled = addForm.device_name.trim() && addForm.device_pin.trim();
+  const requiredFilled =
+    addForm.device_name.trim().length > 0 &&
+    addForm.device_pin.trim().length > 0 &&
+    typeof addForm.staff_id === "number";
 
   // Handle Create Device
   const handleCreateDevice = async () => {
@@ -74,7 +155,9 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
       device_name: addForm.device_name,
       device_pin: addForm.device_pin,
       is_active: addForm.is_active,
+      user: addForm.staff_id,
     };
+
     const req = fetch("/api/admin/create-device", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,7 +165,8 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
     }).then(async (res) => {
       const data = await res.json().catch(() => ({} as unknown));
       if (!res.ok) {
-        const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
+        const msg =
+          extractErrorMessage(data) ?? `Request failed with ${res.status}`;
         throw new Error(msg);
       }
       return data;
@@ -91,9 +175,18 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
     await toast.promise(req, {
       loading: "Creating device...",
       success: "Device created successfully.",
-      error: (e) => (e instanceof Error ? e.message : "Failed to create device."),
+      error: (e) =>
+        e instanceof Error ? e.message : "Failed to create device.",
     });
+
     setAddOpen(false); // Close the dialog
+    // Reset form
+    setAddForm({
+      device_name: "",
+      device_pin: "",
+      staff_id: undefined,
+      is_active: true,
+    });
     router.refresh();
   };
 
@@ -104,14 +197,18 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
         device_name: selectedDevice.device_name,
         device_pin: selectedDevice.device_pin,
       };
-      const req = fetch(`/api/admin/device/${selectedDevice.device_key}/update`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedDevice),
-      }).then(async (res) => {
+      const req = fetch(
+        `/api/admin/device/${selectedDevice.device_key}/update`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedDevice),
+        }
+      ).then(async (res) => {
         const data = await res.json().catch(() => ({} as unknown));
         if (!res.ok) {
-          const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
+          const msg =
+            extractErrorMessage(data) ?? `Request failed with ${res.status}`;
           throw new Error(msg);
         }
         return data;
@@ -120,7 +217,8 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
       await toast.promise(req, {
         loading: "Updating device...",
         success: "Device updated successfully.",
-        error: (e) => (e instanceof Error ? e.message : "Failed to update device."),
+        error: (e) =>
+          e instanceof Error ? e.message : "Failed to update device.",
       });
 
       setEditOpen(false);
@@ -131,13 +229,17 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
   // Handle Delete Device
   const handleDeleteDevice = async () => {
     if (selectedDevice) {
-      const req = fetch(`/api/admin/device/${selectedDevice.device_key}/delete`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-      }).then(async (res) => {
+      const req = fetch(
+        `/api/admin/device/${selectedDevice.device_key}/delete`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        }
+      ).then(async (res) => {
         const data = await res.json().catch(() => ({} as unknown));
         if (!res.ok) {
-          const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
+          const msg =
+            extractErrorMessage(data) ?? `Request failed with ${res.status}`;
           throw new Error(msg);
         }
         return data;
@@ -146,7 +248,8 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
       await toast.promise(req, {
         loading: "Deleting device...",
         success: "Device deleted successfully.",
-        error: (e) => (e instanceof Error ? e.message : "Failed to delete device."),
+        error: (e) =>
+          e instanceof Error ? e.message : "Failed to delete device.",
       });
 
       setDeleteOpen(false);
@@ -154,11 +257,9 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
     }
   };
 
-
-
   const handleStatusChange = async () => {
     const updatedDevice = {
-      is_active: !selectedDevice?.is_active, // Toggle status
+      is_active: !selectedDevice?.is_active,
     };
 
     const req = fetch(`/api/admin/device/${selectedDevice?.device_key}/update`, {
@@ -168,27 +269,35 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
     }).then(async (res) => {
       const data = await res.json().catch(() => ({} as unknown));
       if (!res.ok) {
-        const msg = extractErrorMessage(data) ?? `Request failed with ${res.status}`;
+        const msg =
+          extractErrorMessage(data) ?? `Request failed with ${res.status}`;
         throw new Error(msg);
       }
       return data;
     });
 
     await toast.promise(req, {
-      loading: selectedDevice?.is_active ? "Deactivating device..." : "Activating device...",
-      success: selectedDevice?.is_active ? "Device deactivated successfully." : "Device activated successfully.",
-      error: (e) => (e instanceof Error ? e.message : "Failed to update device status."),
+      loading: selectedDevice?.is_active
+        ? "Deactivating device..."
+        : "Activating device...",
+      success: selectedDevice?.is_active
+        ? "Device deactivated successfully."
+        : "Device activated successfully.",
+      error: (e) =>
+        e instanceof Error ? e.message : "Failed to update device status.",
     });
     setConfirmToggleOpen(false);
     router.refresh();
   };
 
-
   // Server-backed pagination (stable)
   const pageSizeRef = useRef<number>(initialData?.data?.length || 1);
   useEffect(() => {
     if (initialData.next) {
-      pageSizeRef.current = Math.max(pageSizeRef.current, initialData.data.length || 1);
+      pageSizeRef.current = Math.max(
+        pageSizeRef.current,
+        initialData.data.length || 1
+      );
     }
     if (!initialData.next && !initialData.previous) {
       pageSizeRef.current = initialData.data.length || 1;
@@ -196,7 +305,10 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
   }, [initialData.next, initialData.previous, initialData.data.length]);
 
   const pageSize = pageSizeRef.current || 1;
-  const totalPages = Math.max(1, Math.ceil((initialData?.count ?? devices.length) / pageSize));
+  const totalPages = Math.max(
+    1,
+    Math.ceil((initialData?.count ?? devices.length) / pageSize)
+  );
   const canPrev = currentPage > 1 && Boolean(initialData?.previous);
   const canNext = currentPage < totalPages && Boolean(initialData?.next);
   const pages = getPageRange(currentPage, totalPages, 7);
@@ -217,17 +329,44 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
       : true;
 
     const matchesStatus =
-      statusFilter === "all" ? true : statusFilter === "active" ? d.is_active : !d.is_active;
+      statusFilter === "all"
+        ? true
+        : statusFilter === "active"
+          ? d.is_active
+          : !d.is_active;
 
     return matchesSearch && matchesStatus;
   });
+
+  /* -------- Staff combobox data -------- */
+
+  const staffOptions = useMemo(
+    () =>
+      (staffList ?? [])
+        .map((s) => ({ label: String(s.username + "-"+ s.id), value: String(s.id) }))
+        .filter(
+          (opt, idx, arr) => arr.findIndex((o) => o.value === opt.value) === idx
+        )
+        .sort((a, b) => Number(a.value) - Number(b.value)),
+    [staffList]
+  );
+
+  const [staffOpen, setStaffOpen] = useState(false);
+
+  const selectedStaffLabel =
+    staffOptions.find((o) => o.value === String(addForm.staff_id))?.label ??
+    "Select staff id";
+
+  /* --------------- Render --------------- */
 
   return (
     <Card className="space-y-4 p-4">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Device List</h1>
-          <p className="text-sm text-muted-foreground">All devices in your system.</p>
+          <p className="text-sm text-muted-foreground">
+            All devices in your system.
+          </p>
         </div>
       </div>
 
@@ -241,7 +380,12 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
           aria-label="Search devices"
         />
         <div className="flex items-center gap-2">
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "active" | "inactive" | "all")}>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) =>
+              setStatusFilter(v as "active" | "inactive" | "all")
+            }
+          >
             <SelectTrigger className="w-[160px]" aria-label="Filter by status">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -280,12 +424,20 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
                   <TableCell>{device.device_name}</TableCell>
                   <TableCell>{device.device_key}</TableCell>
                   <TableCell>
-                    <Badge className={clsx(device.is_active ? "bg-green-600" : "bg-red-600")}>
+                    <Badge
+                      className={clsx(
+                        device.is_active ? "bg-green-600" : "bg-red-600"
+                      )}
+                    >
                       {device.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{new Date(device.create_at).toLocaleString()}</TableCell>
-                  <TableCell>{new Date(device.updated_ta).toLocaleString()}</TableCell>
+                  <TableCell>
+                    {new Date(device.create_at).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(device.updated_ta).toLocaleString()}
+                  </TableCell>
                   <TableCell>{device.user}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
@@ -308,7 +460,12 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
                         }}
                         aria-label="Toggle Status"
                       >
-                        <RefreshCcw className={clsx("h-4 w-4", device.is_active ? "text-orange-400" : "text-green-500")} />
+                        <RefreshCcw
+                          className={clsx(
+                            "h-4 w-4",
+                            device.is_active ? "text-orange-400" : "text-green-500"
+                          )}
+                        />
                       </Button>
                       <Button
                         variant="ghost"
@@ -320,14 +477,15 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
                       >
                         <Trash2 className="h-4 w-4 text-red-400" />
                       </Button>
-
                     </div>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">No devices available</TableCell>
+                <TableCell colSpan={8} className="text-center">
+                  No devices available
+                </TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -361,7 +519,11 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
               variant={p === currentPage ? "default" : "outline"}
               size="sm"
               onClick={() => goToPage(p)}
-              className={p === currentPage ? "bg-customViolet text-white hover:bg-customViolet/90" : ""}
+              className={
+                p === currentPage
+                  ? "bg-customViolet text-white hover:bg-customViolet/90"
+                  : ""
+              }
             >
               {p}
             </Button>
@@ -369,8 +531,14 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
 
           {pages[pages.length - 1] !== totalPages && (
             <>
-              {pages[pages.length - 1] < totalPages - 1 && <span className="px-1">…</span>}
-              <Button variant="outline" size="sm" onClick={() => goToPage(totalPages)}>
+              {pages[pages.length - 1] < totalPages - 1 && (
+                <span className="px-1">…</span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(totalPages)}
+              >
                 {totalPages}
               </Button>
             </>
@@ -392,7 +560,9 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Create Device</DialogTitle>
-            <DialogDescription>Fill in the device details below to create a new device.</DialogDescription>
+            <DialogDescription>
+              Fill in the device details below to create a new device.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3">
@@ -401,37 +571,120 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
               <Input
                 id="device_name"
                 value={addForm.device_name}
-                onChange={(e) => setAddForm({ ...addForm, device_name: e.target.value })}
+                onChange={(e) =>
+                  setAddForm({ ...addForm, device_name: e.target.value })
+                }
               />
             </div>
+
+
+
             <div className="grid gap-1.5">
               <Label htmlFor="device_pin">Device Pin</Label>
               <Input
                 id="device_pin"
                 value={addForm.device_pin}
-                onChange={(e) => setAddForm({ ...addForm, device_pin: e.target.value })}
+                onChange={(e) =>
+                  setAddForm({ ...addForm, device_pin: e.target.value })
+                }
               />
             </div>
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="status">Status</Label>
-              <Select value={addForm.is_active ? "active" : "inactive"} onValueChange={(v) => setAddForm({ ...addForm, is_active: v === "active" })}>
-                <SelectTrigger className="w-[160px]" aria-label="Device status">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+              <div className="grid gap-1.5">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={addForm.is_active ? "active" : "inactive"}
+                  onValueChange={(v) =>
+                    setAddForm({ ...addForm, is_active: v === "active" })
+                  }
+                >
+                  <SelectTrigger className="w-[160px]" aria-label="Device status">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Staff combobox (search by id; shows id only) */}
+              <div className="grid gap-1.5">
+                <Label htmlFor="staff_id">Staff</Label>
+                <Popover open={staffOpen} onOpenChange={setStaffOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="staff_id"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={staffOpen}
+                      className="w-[200px] justify-between"
+                    >
+                      {selectedStaffLabel}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search staff id..." />
+                      <CommandList>
+                        <CommandEmpty>No staff found.</CommandEmpty>
+                        <CommandGroup>
+                          {staffOptions.map((opt) => (
+                            <CommandItem
+                              key={opt.value}
+                              value={opt.value}
+                              onSelect={(v) => {
+                                setAddForm({
+                                  ...addForm,
+                                  staff_id: Number(v), // ensure numeric id
+                                });
+                                setStaffOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  String(addForm.staff_id) === opt.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {opt.label}
+                            </CommandItem>
+                          ))}
+                          {/* Optional: Clear selection
+                        <CommandItem
+                          value="__clear__"
+                          onSelect={() => {
+                            setAddForm({ ...addForm, staff_id: undefined });
+                            setStaffOpen(false);
+                          }}
+                        >
+                          <Check className="mr-2 h-4 w-4 opacity-0" />
+                          Clear
+                        </CommandItem> */}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={!requiredFilled}>Cancel</Button>
+              <Button variant="outline" disabled={!requiredFilled}>
+                Cancel
+              </Button>
             </DialogClose>
-            <Button onClick={handleCreateDevice} disabled={!requiredFilled} className="bg-customViolet hover:bg-customViolet/90 cursor-pointer">
+            <Button
+              onClick={handleCreateDevice}
+              disabled={!requiredFilled}
+              className="bg-customViolet hover:bg-customViolet/90 cursor-pointer"
+            >
               Create Device
             </Button>
           </DialogFooter>
@@ -440,7 +693,7 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
 
       {/* Edit Device Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Device</DialogTitle>
             <DialogDescription>Update device details below.</DialogDescription>
@@ -451,9 +704,13 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
               <Label htmlFor="device_name">Device Name</Label>
               <Input
                 id="device_name"
-                value={selectedDevice?.device_name}
+                value={selectedDevice?.device_name ?? ""}
                 onChange={(e) =>
-                  setSelectedDevice({ ...selectedDevice!, device_name: e.target.value })
+                  setSelectedDevice((prev) =>
+                    prev
+                      ? { ...prev, device_name: e.target.value }
+                      : prev
+                  )
                 }
               />
             </div>
@@ -461,9 +718,12 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
               <Label htmlFor="device_pin">Device Pin</Label>
               <Input
                 id="device_pin"
-
                 onChange={(e) =>
-                  setSelectedDevice({ ...selectedDevice!, device_pin: e.target.value })
+                  setSelectedDevice((prev) =>
+                    prev
+                      ? { ...prev, device_pin: e.target.value }
+                      : prev
+                  )
                 }
               />
             </div>
@@ -473,7 +733,10 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleEditDevice} className="bg-customViolet hover:bg-customViolet/90 cursor-pointer">
+            <Button
+              onClick={handleEditDevice}
+              className="bg-customViolet hover:bg-customViolet/90 cursor-pointer"
+            >
               Update Device
             </Button>
           </DialogFooter>
@@ -495,21 +758,29 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleDeleteDevice} className="bg-red-600 hover:bg-red-600/90">
+            <Button
+              onClick={handleDeleteDevice}
+              className="bg-red-600 hover:bg-red-600/90"
+            >
               Delete Device
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Status change  Dialog */}
+      {/* Status change Dialog */}
       <Dialog open={confirmToggleOpen} onOpenChange={setConfirmToggleOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedDevice?.is_active ? "Deactivate device?" : "Activate device?"}</DialogTitle>
+            <DialogTitle>
+              {selectedDevice?.is_active
+                ? "Deactivate device?"
+                : "Activate device?"}
+            </DialogTitle>
             <DialogDescription>
               {selectedDevice
-                ? `Are you sure you want to ${selectedDevice.is_active ? "deactivate" : "activate"} “${selectedDevice.device_name}”?`
+                ? `Are you sure you want to ${selectedDevice.is_active ? "deactivate" : "activate"
+                } “${selectedDevice.device_name}”?`
                 : "Are you sure?"}
             </DialogDescription>
           </DialogHeader>
@@ -518,15 +789,17 @@ const DeviceList = ({ deviceListPromise, currentPage }: { deviceListPromise: Pro
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button onClick={handleStatusChange} className="bg-red-600 hover:bg-red-600/90">
-              {selectedDevice?.is_active ? "Deactivate device?" : "Activate device?"}
+            <Button
+              onClick={handleStatusChange}
+              className="bg-red-600 hover:bg-red-600/90"
+            >
+              {selectedDevice?.is_active
+                ? "Deactivate device?"
+                : "Activate device?"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-
-
     </Card>
   );
 };

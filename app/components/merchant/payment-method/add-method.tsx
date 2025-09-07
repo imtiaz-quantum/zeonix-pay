@@ -35,7 +35,7 @@ import clsx from "clsx";
 import PaymentMethodsList from "./list";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import PaymentMethodsSkeleton from "../../skeletons/PaymentMethodsSkeleton";
+import PaymentMethodsSkeleton from "../../../../components/skeletons/PaymentMethodsSkeleton";
 import { ApiResponse, BankMeta, CryptoMeta, Method, MobileBankingMeta } from "@/app/lib/types/payment-method";
 
 

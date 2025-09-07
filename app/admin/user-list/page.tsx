@@ -1,4 +1,4 @@
-import UserListClient from "@/app/components/admin/UserListClient";
+import UserListClient from "@/components/admin/UserListClient";
 import { getUserList } from "@/app/lib/api/admit/user-list";
 
 type PageProps = {

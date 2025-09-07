@@ -1,4 +1,5 @@
-import DeviceList from "@/app/components/staff/deviceList";
+import DeviceList from "@/components/staff/deviceList";
+import { getStaffList } from "@/app/lib/api/admit/staff-list";
 import { getDeviceList } from "@/app/lib/api/admit/staff/deviceList";
 
 type PageProps = {
@@ -9,12 +10,13 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const sp = await searchParams;             
   const page = Number(sp?.page) || 1;
   const deviceListPromise = getDeviceList(page)
+  const userListPromise = getStaffList(page, true)
 
 
   return (
     <div>
 
-      <DeviceList deviceListPromise={deviceListPromise} currentPage={page} />
+      <DeviceList deviceListPromise={deviceListPromise} userListPromise={userListPromise} currentPage={page} />
     </div>
   );
 }

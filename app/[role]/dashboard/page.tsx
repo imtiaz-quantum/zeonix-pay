@@ -1,6 +1,5 @@
 import { DollarSign, HandCoins, Wallet, PiggyBank } from "lucide-react";
-import { StatCard } from "@/app/components/StatCard";
-import RecentTransaction from "@/app/components/dashboard/RecentTransaction";
+import RecentTransaction from "@/components/dashboard/RecentTransaction";
 import { getWalletTransactions } from "@/app/lib/api/merchant/wallet";
 import {
   Card,
@@ -11,9 +10,10 @@ import {
 import { getOverview } from "@/app/lib/api/merchant/overview";
 import { getUserRole } from "@/app/lib/auth";
 import { Suspense } from "react";
-import RecentTransactionSkeleton from "@/app/components/skeletons/TrnxTableSkeleton";
-import StatCards from "@/app/components/dashboard/StatCards";
-import StatCardSkeleton from "@/app/components/skeletons/StatCardSkeleton";
+import RecentTransactionSkeleton from "@/components/skeletons/TrnxTableSkeleton";
+import StatCards from "@/components/dashboard/StatCards";
+import StatCardSkeleton from "@/components/skeletons/StatCardSkeleton";
+import { StatCard } from "@/components/StatCard";
 
 const tableHeaders = [
   "ID",

@@ -1,5 +1,5 @@
-import ApiKeyCard from "@/app/components/merchant/setting/ApiKeyCard";
-import ProfileCard from "@/app/components/merchant/setting/ProfileCard";
+import ApiKeyCard from "@/components/setting/ApiKeyCard";
+import ProfileCard from "@/components/setting/ProfileCard";
 import { getApiKey } from "@/app/lib/api/merchant/apiKey";
 import { getMerchantProfile } from "@/app/lib/api/merchant/profile";
 //import { getUserRole } from "@/app/lib/auth";
