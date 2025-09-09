@@ -1,4 +1,4 @@
-export type ApiResponse = {
+export type AllTransctionResponse = {
   status: boolean;
   count: number;        // total rows across pages
   next: string | null;

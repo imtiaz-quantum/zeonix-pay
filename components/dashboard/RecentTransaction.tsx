@@ -2,6 +2,7 @@ import React, { use } from 'react'
 import {CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import { AllTransctionResponse } from '@/app/lib/types/all-transaction';
 
 // Define the Transaction type with more specific fields
 type Transaction = {
@@ -28,7 +29,7 @@ interface ApiResponse {
 
 type DynamicTableProps = {
   headers: string[];
-  walletTrnxPromise: Promise<ApiResponse>;
+  walletTrnxPromise: Promise<AllTransctionResponse>;
 };
 
 const TZ = "Asia/Dhaka";

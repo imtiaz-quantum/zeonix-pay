@@ -37,10 +37,28 @@ export async function getPayoutList(page = 1) {
 
 
 import { serverGet } from "@/lib/server-get";
-import { ApiResponse } from "../../types/payout";
+import { PayoutListResponse } from "../../types/payout";
 
-export async function getPayoutList(page = 1) {
-  return serverGet<ApiResponse>(
-    `/u/wallet/pay-outs/?page=${page}&page_size=10`
-  );
+
+export type PayoutFilters = {
+  page?: number;
+  page_size?: number;
+  method?: string;
+  pay_status?: string;
+  search?: string;                  // global search
+  created_at_before?: string;       // YYYY-MM-DD
+  created_at_after?: string;        // YYYY-MM-DD
+};
+
+export async function getPayoutList(filters: PayoutFilters) {
+  const qs = new URLSearchParams();
+  if (filters.method) qs.set("method", filters.method);
+  if (filters.pay_status) qs.set("pay_status", filters.pay_status);
+  if (filters.search) qs.set("search", filters.search);
+  if (filters.created_at_before) qs.set("created_at_before", filters.created_at_before);
+  if (filters.created_at_after) qs.set("created_at_after", filters.created_at_after);
+  qs.set("page", String(filters.page ?? 1));
+  qs.set("page_size", String(filters.page_size ?? 10));
+
+  return serverGet<PayoutListResponse>(`/u/wallet/pay-outs/?${qs.toString()}`, { cache: "no-cache" });
 }

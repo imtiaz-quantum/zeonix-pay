@@ -103,7 +103,7 @@ const baseColumns: ColumnDef<Deposit>[] = [
 export function getDepositColumns(isAdmin: boolean): ColumnDef<Deposit>[] {
   const cols = [...baseColumns];
 
-  if (isAdmin) {
+/*   if (isAdmin) {
     cols.push({
       id: "actions",
       header: () => <div className="text-right font-semibold">Actions</div>,
@@ -136,7 +136,7 @@ export function getDepositColumns(isAdmin: boolean): ColumnDef<Deposit>[] {
         );
       },
     });
-  }
+  } */
 
   return cols;
 }

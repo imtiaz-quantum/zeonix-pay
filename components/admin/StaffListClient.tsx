@@ -1,51 +1,22 @@
 "use client";
 
-import { useMemo, useState, useRef, useEffect, use } from "react";
+import { useMemo, useState, useRef, useEffect, use, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
-import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Pencil, RefreshCcw, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-    Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
-} from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-    DialogFooter, DialogClose,
-} from "@/components/ui/dialog";
-import {
-    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { TbPasswordUser } from "react-icons/tb";
 import clsx from "clsx";
 import { extractErrorMessage } from "@/app/lib/utils/extractErrorMessage";
+import { StaffListResponse } from "@/app/lib/types/staffList";
 
-type ApiUser = {
-    id: number | string;
-    username: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone_number: string;
-    status: string;
-    role: string;
-    pid?: string;
-};
-
-type InitialPayload = {
-    status: boolean;
-    count: number;
-    next: string | null;
-    previous: string | null;
-    data: ApiUser[];
-};
 
 type User = {
     id: string;
@@ -59,6 +30,16 @@ type User = {
     role: string;
     username?: string;
 };
+
+type Filters = {
+    method?: string;
+    status?: string;
+    search?: string;
+    created_at_before?: string;
+    created_at_after?: string;
+};
+
+const ALL = "__all__";
 
 /* type Props = {
     initialData: InitialPayload;
@@ -74,11 +55,14 @@ function getPageRange(current: number, total: number, max = 7) {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
-export default function StaffListClient({ userListPromise,
+export default function StaffListClient({
+    userListPromise,
     currentPage,
+    initialFilters,
 }: {
-    userListPromise: Promise<InitialPayload>;
+    userListPromise: Promise<StaffListResponse>;
     currentPage: number;
+    initialFilters: Filters
 }) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -120,31 +104,6 @@ export default function StaffListClient({ userListPromise,
         });
     }, [rows, search, statusFilter]);
 
-    // Server-backed pagination (stable)
-    const pageSizeRef = useRef<number>(initialData?.data?.length || 1);
-    useEffect(() => {
-        if (initialData.next) {
-            pageSizeRef.current = Math.max(pageSizeRef.current, initialData.data.length || 1);
-        }
-        if (!initialData.next && !initialData.previous) {
-            pageSizeRef.current = initialData.data.length || 1;
-        }
-    }, [initialData.next, initialData.previous, initialData.data.length]);
-
-    const pageSize = pageSizeRef.current || 1;
-    const totalPages = Math.max(1, Math.ceil((initialData?.count ?? rows.length) / pageSize));
-    const canPrev = currentPage > 1 && Boolean(initialData?.previous);
-    const canNext = currentPage < totalPages && Boolean(initialData?.next);
-    const pages = getPageRange(currentPage, totalPages, 7);
-
-    const goToPage = (page: number) => {
-        const target = Math.min(Math.max(1, page), totalPages);
-        if (target === currentPage) return;
-        const params = new URLSearchParams(searchParams?.toString() || "");
-        params.set("page", String(target));
-        router.push(`?${params.toString()}`);
-    };
-
     // Dialog & form states
     const [editOpen, setEditOpen] = useState(false);
     const [resetOpen, setResetOpen] = useState(false);
@@ -179,7 +138,7 @@ export default function StaffListClient({ userListPromise,
         addForm.last_name.trim() &&
         addForm.email.trim() &&
         addForm.username.trim() &&
-        addForm.password.trim().length >= 6 &&
+        addForm.password.trim().length >= 4 &&
         addForm.phone_number.trim() &&
         addForm.role.trim()
 
@@ -381,33 +340,77 @@ export default function StaffListClient({ userListPromise,
         router.refresh();
     };
 
-    return (
-        <Card className="space-y-4 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-                <div>
-                    <h1 className="text-xl font-semibold">Staff List</h1>
-                    <p className="text-sm text-muted-foreground">All staff in your system.</p>
-                </div>
-            </div>
+// Server-backed pagination (stable)
+    const filteredRows = filtered.length;
+    const pageSize = 10; 
+    const totalPages = Math.max(1, Math.ceil(filteredRows / pageSize)); 
 
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            const params = new URLSearchParams(searchParams?.toString() || "");
+            params.set("page", String(totalPages)); 
+            router.replace(`?${params.toString()}`, { scroll: false });
+        }
+    }, [currentPage, totalPages, router, searchParams]);
+
+    const canPrev = currentPage > 1 && filteredRows > 0;
+    const canNext = currentPage < totalPages && filteredRows > 0; 
+    const pages = getPageRange(currentPage, totalPages, 7); 
+
+    const goToPage = (page: number) => {
+        const targetPage = Math.min(Math.max(1, page), totalPages);
+        if (targetPage === currentPage) return;
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        params.set("page", String(targetPage));
+        router.push(`?${params.toString()}`);
+    };
+
+
+    // --- URL-driven filters (server-side) ---
+    // debounce for text input
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const replaceDebounced = useCallback((url: string) => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            router.replace(url, { scroll: false });
+        }, 350);
+    }, [router]);
+
+    const setParam = useCallback((key: string, value?: string, debounced = false) => {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        if (value && value.trim() !== "") params.set(key, value);
+        else params.delete(key);
+        // reset page when filters change
+        params.delete("page");
+        const url = `?${params.toString()}`;
+        if (debounced) replaceDebounced(url);
+        else router.replace(url, { scroll: false });
+    }, [router, searchParams, replaceDebounced]);
+
+
+    return (
+        <div className="space-y-4 p-4">
             <div className="flex flex-col sm:flex-row justify-between gap-3">
                 {/* Search */}
                 <Input
-                    placeholder="Search by StoreID, name, email, phone, brand, username..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="sm:max-w-md"
-                    aria-label="Search users"
+                    placeholder="Filter by search…"
+                    defaultValue={initialFilters.search ?? ""}
+                    onChange={(e) => setParam("search", e.target.value, true)}
+                    className="md:max-w-sm flex-1"
                 />
                 <div className="flex items-center gap-2">
-                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "active" | "inactive" | "all")}>
-                        <SelectTrigger className="w-[160px]" aria-label="Filter by status">
+                    {/* status */}
+                    <Select
+                        value={searchParams.get("status") ?? initialFilters.status ?? undefined}
+                        onValueChange={(v) => setParam("status", v === ALL ? undefined : v)}
+                    >
+                        <SelectTrigger className="w-44">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value={ALL}>All</SelectItem>   {/* ← no empty string */}
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Disable">Inactive</SelectItem>
                         </SelectContent>
                     </Select>
                     <Button
@@ -808,6 +811,6 @@ export default function StaffListClient({ userListPromise,
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </Card>
+        </div>
     );
 }

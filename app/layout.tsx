@@ -44,8 +44,8 @@ export default async function RootLayout({
   let profileData = null;
 
   if (role === "merchant") {
-    const { data } = await getOverview();
-    balance = data.balance;
+    const { wallet } = await getOverview("merchant");
+    balance = wallet.balance;
     const { data: MProfileData } = await getMerchantProfile();
     profileData = MProfileData;
   }

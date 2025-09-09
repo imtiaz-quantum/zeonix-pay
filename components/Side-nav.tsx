@@ -384,7 +384,7 @@ export function SideNav({ collapsed, toggleSidebar, balance }: SideNavProps) {
           </nav>
 
           {/* Footer/Logout */}
-          <div className={`p-4 ${collapsed ? "text-center" : ""}`}>
+          {/* <div className={`p-4 ${collapsed ? "text-center" : ""}`}>
             <button
               onClick={() => console.log("Logout")}
               className={`flex items-center text-gray-700 hover:text-primary transition-colors ${collapsed ? "justify-center mx-auto" : "gap-3"
@@ -393,7 +393,7 @@ export function SideNav({ collapsed, toggleSidebar, balance }: SideNavProps) {
               <LogOut size={18} />
               {!collapsed && <span className="text-sm font-medium">Logout</span>}
             </button>
-          </div>
+          </div> */}
         </div>
       </aside>
     </>

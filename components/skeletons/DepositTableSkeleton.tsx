@@ -31,9 +31,10 @@ const DepositTableSkeleton = () => {
   return (
     <div className="w-full overflow-hidden">
       <div className="flex items-center py-4 gap-2">
-        <SkeletonPlaceholder width="400px" height="40px" />
-        <SkeletonPlaceholder width="100px" height="40px" />
-        <SkeletonPlaceholder width="100px" height="40px" />
+        <SkeletonPlaceholder width="300px" height="40px" />
+        <SkeletonPlaceholder width="200px" height="40px" />
+        <SkeletonPlaceholder width="200px" height="40px" />
+        <SkeletonPlaceholder width="200px" height="40px" />
       {/*   <SkeletonPlaceholder width="100px" height="40px" /> */}
         <SkeletonPlaceholder width="100px" height="40px" className="ml-auto" />
       </div>

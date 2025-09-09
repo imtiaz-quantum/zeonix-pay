@@ -1,29 +1,31 @@
 export type Deposit = {
-  id: number
-  invoice_payment_id: string
-  data: { key: string; code: string }
-  method_payment_id: string
-  customer_order_id: string
-  customer_name: string
-  customer_number: string
-  customer_amount: string
-  customer_email: string
-  customer_address: string
-  customer_description: string | null
-  method: string            // e.g. "bkash"
-  status: string            // e.g. "active" | "inactive" | "pending"
-  pay_status: string        // e.g. "paid" | "unpaid" | "failed"
-  transaction_id: string
-  invoice_trxn: string
-  extras: unknown | null
-  created_at: string
-  merchant: number
+  id: number;
+  store_name: string;
+  trx_id: string;
+  trx_uuid: string;
+  receiver_name: string;
+  receiver_number: string;
+  amount: string; 
+  payment_method: string; 
+  payment_details: { account_name: string; account_number: string };
+  status: string;
+  created_at: string;
+  merchant: number;
+};
+
+export interface DepositTotals {
+  total_amount: number;
+  pending_amount: number;
+  success_amount: number;
+  rejected_amount: number;
+  delete_amount: number;
 }
 
-export interface ApiResponse {
+export interface DepositListResponse {
   status: boolean;
-  count: number;
+  count: number;         
   next: string | null;
   previous: string | null;
-  data: Deposit[];
+  total_amount: DepositTotals; 
+  data: Deposit[];  
 }

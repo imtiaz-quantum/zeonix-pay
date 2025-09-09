@@ -193,7 +193,7 @@ export const baseColumns: ColumnDef<Transaction>[] = [
 export function getReportColumns(isAdmin: boolean): ColumnDef<Transaction>[] {
   const cols = [...baseColumns];
 
-  if (isAdmin) {
+/*   if (isAdmin) {
     cols.push({
       id: "actions",
       header: () => <div className="text-right font-semibold">Actions</div>,
@@ -227,6 +227,6 @@ export function getReportColumns(isAdmin: boolean): ColumnDef<Transaction>[] {
       },
     });
   }
-
+ */
   return cols;
 }

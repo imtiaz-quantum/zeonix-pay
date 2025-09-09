@@ -36,12 +36,14 @@ export async function getOverview() {
 }
  */
 
-import { serverGet } from "@/lib/server-get";
-import { ApiResponse } from "../../types/wallet-overview";
+// app/lib/api/merchant/overview.ts
 
-export async function getOverview() {
-  return serverGet<ApiResponse>(
-    "/u/wallet/wallet-overview/?page_size=10",
-    { cache: "force-cache" }
-  );
+import type { UserRole, WalletOverviewResponse } from "@/app/lib/types/wallet-overview";
+import { serverGet } from "@/lib/server-get";
+
+export async function getOverview<R extends UserRole>(role: R) {
+  // same endpoint for all roles; typing depends on role
+  return serverGet<WalletOverviewResponse<R>>("/u/wallet/wallet-overview/", {
+    cache: "force-cache",
+  });
 }

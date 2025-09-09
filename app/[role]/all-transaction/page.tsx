@@ -7,13 +7,38 @@ import LedgerTable from "@/components/ledger/LedgerTable";
 import { getWalletTransactions } from "@/app/lib/api/merchant/wallet";
 
 type PageProps = {
-  searchParams: Promise<{ page?: string }>; 
+  searchParams: Promise<{
+    page?: string;
+    method?: string;
+    status?: string;
+    tran_type?: string;
+    search?: string;
+    created_at_before?: string;
+    created_at_after?: string; 
+  }>;
 };
-
 export default async function Page({ searchParams }: PageProps) {
-  const sp = await searchParams;           
-  const page = Number(sp?.page) || 1;          
-  const ledgerListPromise = getWalletTransactions(page); 
+  const sp = await searchParams;
+
+  const page = Number(sp?.page) || 1;
+  const method = sp?.method || undefined;
+  const status = sp?.status || undefined;
+  const tran_type = sp?.tran_type || undefined;
+  const search = sp?.search || undefined;
+  const created_at_before = sp?.created_at_before || undefined;
+  const created_at_after = sp?.created_at_after || undefined;
+
+  const ledgerListPromise = getWalletTransactions({
+    page,
+    page_size: 10,
+    method,
+    status,
+    tran_type,
+    search,
+    created_at_before,
+    created_at_after,
+  });
+
 
   return (
     <Card>
@@ -23,7 +48,7 @@ export default async function Page({ searchParams }: PageProps) {
       </CardHeader>
       <CardContent>
         <Suspense fallback={<DepositTableSkeleton />}>
-            <LedgerTable ledgerListPromise={ledgerListPromise} currentPage={page} />
+            <LedgerTable ledgerListPromise={ledgerListPromise}  initialFilters={{ method, status, search, tran_type }} currentPage={page} />
         </Suspense>
       </CardContent>
     </Card>

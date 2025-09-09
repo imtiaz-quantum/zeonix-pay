@@ -55,11 +55,43 @@ export async function getWithdrawRequests() {
   return res.json();
 } */
 
-import { serverGet } from "@/lib/server-get";
+/* import { serverGet } from "@/lib/server-get";
 import { ApiResponse } from "../../types/withdraw-request";
 
 export async function getWithdrawRequests(page = 1) {
   return serverGet<ApiResponse>(
     `/u/wallet/withdraw-request/?page=${page}&page_size=10`
   );
-}
+} */
+
+
+
+  
+import { serverGet } from "@/lib/server-get";
+import { WithdrawReqListResponse } from "../../types/withdraw-request";
+
+
+  
+  export type WithdrawFilters = {
+    page?: number;
+    page_size?: number;
+    method?: string;
+    status?: string;
+    search?: string;                  // global search
+    created_at_before?: string;       // YYYY-MM-DD
+    created_at_after?: string;        // YYYY-MM-DD
+  };
+  
+  export async function getWithdrawRequests(filters: WithdrawFilters) {
+    const qs = new URLSearchParams();
+    if (filters.method) qs.set("method", filters.method);
+    if (filters.status) qs.set("status", filters.status);
+    if (filters.search) qs.set("search", filters.search);
+    if (filters.created_at_before) qs.set("created_at_before", filters.created_at_before);
+    if (filters.created_at_after) qs.set("created_at_after", filters.created_at_after);
+    qs.set("page", String(filters.page ?? 1));
+    qs.set("page_size", String(filters.page_size ?? 10));
+  
+    return serverGet<WithdrawReqListResponse>(`/u/wallet/withdraw-request/?${qs.toString()}`, { cache: "no-cache" });
+  }
+  

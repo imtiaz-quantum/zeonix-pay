@@ -191,7 +191,7 @@ const baseColumns: ColumnDef<Payout>[] = [
 export function getPayoutColumns(isAdmin: boolean): ColumnDef<Payout>[] {
   const cols = [...baseColumns];
 
-  if (isAdmin) {
+/*   if (isAdmin) {
     cols.push({
       id: "actions",
       header: () => <div className="text-right font-semibold">Actions</div>,
@@ -224,7 +224,7 @@ export function getPayoutColumns(isAdmin: boolean): ColumnDef<Payout>[] {
         );
       },
     });
-  }
+  } */
 
   return cols;
 }

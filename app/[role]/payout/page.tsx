@@ -364,7 +364,7 @@ export default async function Page() {
 }
  */
 
-import {
+/* import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { Suspense } from "react";
@@ -392,6 +392,59 @@ export default async function Page({ searchParams }: PageProps) {
           <PayoutTable
             payoutListPromise={payoutListPromise}
             currentPage={page}
+          />
+        </Suspense>
+      </CardContent>
+    </Card>
+  );
+}
+ */
+
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card";
+import { Suspense } from "react";
+import DepositTableSkeleton from "@/components/skeletons/DepositTableSkeleton";
+import { getPayoutList } from "@/app/lib/api/merchant/payout";
+import PayoutTable from "@/components/payout/PayoutTable";
+
+type PageProps = {
+  searchParams: Promise<{
+    page?: string;
+    method?: string;
+    pay_status?: string;
+    search?: string;
+  }>;
+};
+
+export default async function Page({ searchParams }: PageProps) {
+  const sp = await searchParams;
+
+  const page = Number(sp?.page) || 1;
+  const method = sp?.method || undefined;
+  const pay_status = sp?.pay_status || undefined;
+  const search = sp?.search || undefined;
+
+  const payoutListPromise = getPayoutList({
+    page,
+    page_size: 10,
+    method,
+    pay_status,
+    search,
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline">Recent Transactions</CardTitle>
+        <CardDescription>A list of recent transactions.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Suspense fallback={<DepositTableSkeleton />}>
+          <PayoutTable
+            payoutListPromise={payoutListPromise}
+            currentPage={page}
+            initialFilters={{ method, pay_status, search }}
           />
         </Suspense>
       </CardContent>

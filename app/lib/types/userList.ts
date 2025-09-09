@@ -22,7 +22,7 @@ export type ApiUser = {
   };
 };
 
-export type InitialPayload = {
+export type UsersListResponse = {
   status: boolean;
   count: number;
   next: string | null;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, use, useMemo } from "react";
+import React, { useState, useRef, useEffect, use, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -35,7 +35,6 @@ import clsx from "clsx";
 import { Card } from "@/components/ui/card";
 import { extractErrorMessage } from "@/app/lib/utils/extractErrorMessage";
 import { useRouter, useSearchParams } from "next/navigation";
-import { InitialPayload } from "@/app/lib/types/userList";
 import {
   Popover,
   PopoverContent,
@@ -50,6 +49,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { StaffListResponse } from "@/app/lib/types/staffList";
 
 /* ---------------- Types ---------------- */
 
@@ -91,6 +91,16 @@ type AddForm = {
   is_active: boolean;
 };
 
+type Filters = {
+  method?: string;
+  is_active?: string;
+  search?: string;
+  created_at_before?: string;
+  created_at_after?: string;
+};
+
+const ALL = "__all__";
+
 /* --------------- Utils ---------------- */
 
 function getPageRange(current: number, total: number, max = 7) {
@@ -106,15 +116,18 @@ function getPageRange(current: number, total: number, max = 7) {
 
 const DeviceList = ({
   deviceListPromise,
+  initialFilters,
   currentPage,
   userListPromise,
 }: {
   deviceListPromise: Promise<ApiResponse>;
   currentPage: number;
-  userListPromise: Promise<InitialPayload>;
+  initialFilters: Filters;
+  userListPromise: Promise<StaffListResponse>;
 }) => {
   const initialData = use(deviceListPromise);
   const devices = initialData?.data ?? [];
+  console.log(initialData)
 
   const staffList: Staff[] =
     (use(userListPromise)?.data as Staff[] | undefined)?.filter(
@@ -290,37 +303,6 @@ const DeviceList = ({
     router.refresh();
   };
 
-  // Server-backed pagination (stable)
-  const pageSizeRef = useRef<number>(initialData?.data?.length || 1);
-  useEffect(() => {
-    if (initialData.next) {
-      pageSizeRef.current = Math.max(
-        pageSizeRef.current,
-        initialData.data.length || 1
-      );
-    }
-    if (!initialData.next && !initialData.previous) {
-      pageSizeRef.current = initialData.data.length || 1;
-    }
-  }, [initialData.next, initialData.previous, initialData.data.length]);
-
-  const pageSize = pageSizeRef.current || 1;
-  const totalPages = Math.max(
-    1,
-    Math.ceil((initialData?.count ?? devices.length) / pageSize)
-  );
-  const canPrev = currentPage > 1 && Boolean(initialData?.previous);
-  const canNext = currentPage < totalPages && Boolean(initialData?.next);
-  const pages = getPageRange(currentPage, totalPages, 7);
-
-  const goToPage = (page: number) => {
-    const target = Math.min(Math.max(1, page), totalPages);
-    if (target === currentPage) return;
-    const params = new URLSearchParams(searchParams?.toString() || "");
-    params.set("page", String(target));
-    router.push(`?${params.toString()}`);
-  };
-
   // Filter devices locally (search + status)
   const filteredDevices = devices.filter((d) => {
     const matchesSearch = search
@@ -343,7 +325,7 @@ const DeviceList = ({
   const staffOptions = useMemo(
     () =>
       (staffList ?? [])
-        .map((s) => ({ label: String(s.username + "-"+ s.id), value: String(s.id) }))
+        .map((s) => ({ label: String(s.username + "-" + s.id), value: String(s.id) }))
         .filter(
           (opt, idx, arr) => arr.findIndex((o) => o.value === opt.value) === idx
         )
@@ -356,6 +338,57 @@ const DeviceList = ({
   const selectedStaffLabel =
     staffOptions.find((o) => o.value === String(addForm.staff_id))?.label ??
     "Select staff id";
+
+
+  // Server-backed pagination (stable)
+  const filteredRows = filteredDevices.length;
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(filteredRows / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      params.set("page", String(totalPages));
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }, [currentPage, totalPages, router, searchParams]);
+
+  const canPrev = currentPage > 1 && filteredRows > 0;
+  const canNext = currentPage < totalPages && filteredRows > 0;
+  const pages = getPageRange(currentPage, totalPages, 7);
+
+  const goToPage = (page: number) => {
+    const targetPage = Math.min(Math.max(1, page), totalPages);
+    if (targetPage === currentPage) return;
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    params.set("page", String(targetPage));
+    router.push(`?${params.toString()}`);
+  };
+
+
+
+
+  // --- URL-driven filters (server-side) ---
+  // debounce for text input
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const replaceDebounced = useCallback((url: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      router.replace(url, { scroll: false });
+    }, 350);
+  }, [router]);
+
+  const setParam = useCallback((key: string, value?: string, debounced = false) => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (value && value.trim() !== "") params.set(key, value);
+    else params.delete(key);
+    // reset page when filters change
+    params.delete("page");
+    const url = `?${params.toString()}`;
+    if (debounced) replaceDebounced(url);
+    else router.replace(url, { scroll: false });
+  }, [router, searchParams, replaceDebounced]);
+
 
   /* --------------- Render --------------- */
 
@@ -373,26 +406,24 @@ const DeviceList = ({
       <div className="flex flex-col sm:flex-row justify-between gap-3">
         {/* Search */}
         <Input
-          placeholder="Search by name, key..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="sm:max-w-md"
-          aria-label="Search devices"
+          placeholder="Filter by search…"
+          defaultValue={initialFilters.search ?? ""}
+          onChange={(e) => setParam("search", e.target.value, true)}
+          className="md:max-w-sm flex-1"
         />
         <div className="flex items-center gap-2">
+          {/* status */}
           <Select
-            value={statusFilter}
-            onValueChange={(v) =>
-              setStatusFilter(v as "active" | "inactive" | "all")
-            }
+            value={searchParams.get("is_active") ?? initialFilters.is_active ?? undefined}
+            onValueChange={(v) => setParam("is_active", v === ALL ? undefined : v)}
           >
-            <SelectTrigger className="w-[160px]" aria-label="Filter by status">
+            <SelectTrigger className="w-44">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value={ALL}>All</SelectItem>   {/* ← no empty string */}
+              <SelectItem value="true">Active</SelectItem>
+              <SelectItem value="false">Inactive</SelectItem>
             </SelectContent>
           </Select>
           <Button

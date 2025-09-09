@@ -258,8 +258,9 @@ import { Landmark, Smartphone, Coins } from "lucide-react";
 import clsx from "clsx";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import ConfirmAction from "../../ConfirmAction";
+
 import { MethodType, PaymentMethod } from "@/app/lib/types/payment-method";
+import ConfirmAction from "@/components/ConfirmAction";
 
 
 const getMessage = (x: unknown): string | undefined => {

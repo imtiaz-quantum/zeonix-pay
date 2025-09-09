@@ -63,11 +63,40 @@ export async function getUserList(page = 1) {
 }
  */
 
-import { serverGet } from "@/lib/server-get";
+/* import { serverGet } from "@/lib/server-get";
 import { InitialPayload } from "../../types/userList";
 
 export async function getUserList(page = 1) {
   return serverGet<InitialPayload>(
     `/admin/merchant/?page=${page}&page_size=10`
   );
-}
+} */
+
+
+import { serverGet } from "@/lib/server-get";
+import { UsersListResponse } from "../../types/userList";
+
+
+
+export type UsersListFilters = {
+  page?: number;
+  page_size?: number;
+  method?: string;
+  status?: string;
+  search?: string;                  // global search
+  created_at_before?: string;       // YYYY-MM-DD
+  created_at_after?: string;        // YYYY-MM-DD
+};
+
+export async function getUsersList(filters: UsersListFilters) {
+  const qs = new URLSearchParams();
+  if (filters.method) qs.set("method", filters.method);
+  if (filters.status) qs.set("status", filters.status);
+  if (filters.search) qs.set("search", filters.search);
+  if (filters.created_at_before) qs.set("created_at_before", filters.created_at_before);
+  if (filters.created_at_after) qs.set("created_at_after", filters.created_at_after);
+  qs.set("page", String(filters.page ?? 1));
+  qs.set("page_size", String(filters.page_size ?? 10));
+
+  return serverGet<UsersListResponse>(`/admin/merchant/?${qs.toString()}`, { cache: "no-cache" });
+}  

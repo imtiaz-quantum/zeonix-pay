@@ -9,7 +9,7 @@ import { ReactNode } from "react";
 
 type StatCardProps = {
   title: string;
-  amount: string;
+  amount: number;
   subtitle: string;
   icon: ReactNode;
   bgColor: string; // Tailwind bg color class (e.g., "bg-blue-100")

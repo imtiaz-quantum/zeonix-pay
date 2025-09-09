@@ -224,7 +224,7 @@ export const baseColumns: ColumnDef<Ledger>[] = [
 export function getLedgerColumns(isAdmin: boolean): ColumnDef<Ledger>[] {
   const cols = [...baseColumns];
 
-  if (isAdmin) {
+/*   if (isAdmin) {
     cols.push({
       id: "actions",
       header: () => <div className="text-right font-semibold">Actions</div>,
@@ -257,7 +257,7 @@ export function getLedgerColumns(isAdmin: boolean): ColumnDef<Ledger>[] {
         );
       },
     });
-  }
+  } */
 
   return cols;
 }

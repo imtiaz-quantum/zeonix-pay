@@ -34,11 +34,40 @@ export async function getWalletTransactions(page = 1) {
   return res.json();
 }
  */
-import { serverGet } from "@/lib/server-get";
+/* import { serverGet } from "@/lib/server-get";
 import { ApiResponse } from "../../types/all-transaction";
 
 export async function getWalletTransactions(page = 1) {
   return serverGet<ApiResponse>(
     `/u/wallet/wallet-transaction/?page=${page}&page_size=10`
   );
-}
+} */
+
+import { serverGet } from "@/lib/server-get";
+import { AllTransctionResponse } from "../../types/all-transaction";
+ 
+ 
+ export type WalletTransactionsFilters = {
+   page?: number;
+   page_size?: number;
+   method?: string;
+   status?: string;
+   tran_type?: string;
+   search?: string;               
+   created_at_before?: string;  
+   created_at_after?: string;    
+ };
+ 
+ export async function getWalletTransactions(filters: WalletTransactionsFilters) {
+   const qs = new URLSearchParams();
+   if (filters.method) qs.set("method", filters.method);
+   if (filters.status) qs.set("status", filters.status);
+   if (filters.search) qs.set("search", filters.search);
+   if (filters.tran_type) qs.set("tran_type", filters.tran_type);
+   if (filters.created_at_before) qs.set("created_at_before", filters.created_at_before);
+   if (filters.created_at_after) qs.set("created_at_after", filters.created_at_after);
+   qs.set("page", String(filters.page ?? 1));
+   qs.set("page_size", String(filters.page_size ?? 10));
+ 
+   return serverGet<AllTransctionResponse>(`/u/wallet/wallet-transaction/?${qs.toString()}`, { cache: "no-cache" });
+ } 
