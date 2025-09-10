@@ -1,5 +1,5 @@
 import ProfilePage from '@/components/profile/profile';
-import { getProfile } from '@/app/lib/api/merchant/profile';
+import { getProfile } from '@/lib/api/merchant/profile';
 import React from 'react'
 
 const page = async () => {

@@ -9,7 +9,7 @@ import type {
   MerchantDashboardAccountantCard,
   WalletOverviewAny,
   UserRole,
-} from "@/app/lib/types/wallet-overview";
+} from "@/lib/types/wallet-overview";
 
 export type Props = {
   role: UserRole;

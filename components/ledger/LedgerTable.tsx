@@ -27,7 +27,7 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { getLedgerColumns } from "./ledgerColumns";
-import { AllTransctionResponse } from "@/app/lib/types/all-transaction";
+import { AllTransctionResponse } from "@/lib/types/all-transaction";
 
 
 type Filters = {

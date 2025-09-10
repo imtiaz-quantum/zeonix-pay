@@ -1,7 +1,7 @@
 import ApiKeyCard from "@/components/setting/ApiKeyCard";
 import ProfileCard from "@/components/setting/ProfileCard";
-import { getApiKey } from "@/app/lib/api/merchant/apiKey";
-import { getMerchantProfile } from "@/app/lib/api/merchant/profile";
+import { getApiKey } from "@/lib/api/merchant/apiKey";
+import { getMerchantProfile } from "@/lib/api/merchant/profile";
 //import { getUserRole } from "@/app/lib/auth";
 import ZeonixPayCard from "@/components/ui/zeonixpay-card";
 

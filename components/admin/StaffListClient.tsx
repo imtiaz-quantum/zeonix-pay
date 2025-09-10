@@ -14,8 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { TbPasswordUser } from "react-icons/tb";
 import clsx from "clsx";
-import { extractErrorMessage } from "@/app/lib/utils/extractErrorMessage";
-import { StaffListResponse } from "@/app/lib/types/staffList";
+import { extractErrorMessage } from "@/utils/extractErrorMessage";
+import { StaffListResponse } from "@/lib/types/staffList";
 
 
 type User = {

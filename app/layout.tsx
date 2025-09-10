@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Roboto } from "next/font/google";
 import "./globals.css";
-import { getUserRole } from "./lib/auth";
 import { Toaster } from "react-hot-toast";
 import { getServerSession } from "next-auth";
-import { authOptions } from "./lib/authOptions";
+import { authOptions } from "../lib/authOptions";
 import Providers from "./providers";
-import { getOverview } from "./lib/api/merchant/overview";
-import { getMerchantProfile } from "./lib/api/merchant/profile";
+import { getOverview } from "../lib/api/merchant/overview";
+import { getMerchantProfile } from "../lib/api/merchant/profile";
 import WithOutLayout from "@/components/WithOutLayout";
+import { getUserRole } from "@/lib/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

@@ -259,7 +259,7 @@ import clsx from "clsx";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
-import { MethodType, PaymentMethod } from "@/app/lib/types/payment-method";
+import { MethodType, PaymentMethod } from "@/lib/types/payment-method";
 import ConfirmAction from "@/components/ConfirmAction";
 
 

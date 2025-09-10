@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpDown, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { Ledger } from "@/app/lib/types/all-transaction";
+import { Ledger } from "@/lib/types/all-transaction";
 
 
 // ===== Helpers =====

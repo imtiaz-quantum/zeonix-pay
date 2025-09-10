@@ -25,8 +25,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { TbPasswordUser } from "react-icons/tb";
 import clsx from "clsx";
-import { extractErrorMessage } from "@/app/lib/utils/extractErrorMessage";
-import { UsersListResponse } from "@/app/lib/types/userList";
+import { extractErrorMessage } from "@/utils/extractErrorMessage";
+import { UsersListResponse } from "@/lib/types/userList";
 
 
 type User = {

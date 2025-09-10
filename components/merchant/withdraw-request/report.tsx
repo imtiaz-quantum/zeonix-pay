@@ -255,7 +255,7 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { getReportColumns } from "./reportColumns";
-import { WithdrawReqListResponse } from "@/app/lib/types/withdraw-request";
+import { WithdrawReqListResponse } from "@/lib/types/withdraw-request";
 import TotalAmountBar from "@/components/payout/PayoutTotalsBar";
 
 const payStatusOptions = [

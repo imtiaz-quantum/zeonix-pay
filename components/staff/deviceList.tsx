@@ -33,7 +33,7 @@ import { Check, ChevronsUpDown, Pencil, RefreshCcw, Trash2 } from "lucide-react"
 import toast from "react-hot-toast";
 import clsx from "clsx";
 import { Card } from "@/components/ui/card";
-import { extractErrorMessage } from "@/app/lib/utils/extractErrorMessage";
+import { extractErrorMessage } from "@/utils/extractErrorMessage";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Popover,
@@ -49,7 +49,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { StaffListResponse } from "@/app/lib/types/staffList";
+import { StaffListResponse } from "@/lib/types/staffList";
 
 /* ---------------- Types ---------------- */
 

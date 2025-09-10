@@ -1,6 +1,6 @@
 import DeviceList from "@/components/staff/deviceList";
-import { getStaffList } from "@/app/lib/api/admit/staff-list";
-import { getDeviceList } from "@/app/lib/api/admit/staff/deviceList";
+import { getStaffList } from "@/lib/api/admit/staff-list";
+import { getDeviceList } from "@/lib/api/admit/staff/deviceList";
 
 type PageProps = {
   searchParams: Promise<{

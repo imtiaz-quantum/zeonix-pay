@@ -27,7 +27,7 @@ import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
-import { DepositListResponse } from "@/app/lib/types/deposit";
+import { DepositListResponse } from "@/lib/types/deposit";
 import PayoutTotalsBar from "../payout/PayoutTotalsBar";
 
 const payStatusOptions = [

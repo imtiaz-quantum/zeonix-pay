@@ -1,5 +1,5 @@
-import { authOptions } from "@/app/lib/authOptions";
-import { getAccessToken } from "@/app/lib/getToken";
+import { authOptions } from "@/lib/authOptions";
+import { getAccessToken } from "@/lib/getToken";
 import { getServerSession } from "next-auth";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

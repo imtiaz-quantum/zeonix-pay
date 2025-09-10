@@ -1,18 +1,18 @@
 import RecentTransaction from "@/components/dashboard/RecentTransaction";
-import { getWalletTransactions } from "@/app/lib/api/merchant/wallet";
+import { getWalletTransactions } from "@/lib/api/merchant/wallet";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getOverview } from "@/app/lib/api/merchant/overview";
-import { getUserRole } from "@/app/lib/auth";
+import { getOverview } from "@/lib/api/merchant/overview";
+import { getUserRole } from "@/lib/auth";
 import { Suspense } from "react";
 import RecentTransactionSkeleton from "@/components/skeletons/TrnxTableSkeleton";
 import StatCards from "@/components/dashboard/StatCards";
 import StatCardSkeleton from "@/components/skeletons/StatCardSkeleton";
-import { UserRole, WalletOverviewAny } from "@/app/lib/types/wallet-overview";
+import { UserRole, WalletOverviewAny } from "@/lib/types/wallet-overview";
 
 const tableHeaders = [
   "ID",

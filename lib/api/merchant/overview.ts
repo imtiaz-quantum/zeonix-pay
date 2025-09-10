@@ -38,7 +38,7 @@ export async function getOverview() {
 
 // app/lib/api/merchant/overview.ts
 
-import type { UserRole, WalletOverviewResponse } from "@/app/lib/types/wallet-overview";
+import type { UserRole, WalletOverviewResponse } from "@/lib/types/wallet-overview";
 import { serverGet } from "@/lib/server-get";
 
 export async function getOverview<R extends UserRole>(role: R) {

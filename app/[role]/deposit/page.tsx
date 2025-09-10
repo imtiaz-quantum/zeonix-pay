@@ -1,7 +1,7 @@
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
-import { getDepositList } from "@/app/lib/api/merchant/deposite";
+import { getDepositList } from "@/lib/api/merchant/deposite";
 import { Suspense } from "react";
 import DepositTableSkeleton from "@/components/skeletons/DepositTableSkeleton";
 import DepositTable from "@/components/deposit/DepositTable";

@@ -4,7 +4,7 @@ import { ToggleLeft, ToggleRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { RevealableField } from "./RevealableField";
-import { ApiKeyItem, ApiResponse } from "@/app/lib/types/apiKey";
+import { ApiKeyItem, ApiResponse } from "@/lib/types/apiKey";
 
 
 

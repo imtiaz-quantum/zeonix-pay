@@ -35,8 +35,9 @@ import clsx from "clsx";
 import PaymentMethodsList from "./list";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import PaymentMethodsSkeleton from "../../../../components/skeletons/PaymentMethodsSkeleton";
-import { ApiResponse, BankMeta, CryptoMeta, Method, MobileBankingMeta } from "@/app/lib/types/payment-method";
+
+import { ApiResponse, BankMeta, CryptoMeta, Method, MobileBankingMeta } from "@/lib/types/payment-method";
+import PaymentMethodsListSkeleton from "@/components/skeletons/PaymentMethodsSkeleton";
 
 
 
@@ -446,7 +447,7 @@ const AddMethod = ({ paymentMethodListPromise}:{ paymentMethodListPromise: Promi
       </CardHeader>
 
       {/* List */}
-      <Suspense fallback={<PaymentMethodsSkeleton/>}>
+      <Suspense fallback={<PaymentMethodsListSkeleton/>}>
         <PaymentMethodsList data={data} />
       </Suspense>
 

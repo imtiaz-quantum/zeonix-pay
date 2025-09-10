@@ -5,8 +5,8 @@ import {
 import { Button } from "@/components/ui/button";
 
 import { Settings } from "lucide-react";
-import { getPaymentMethodList } from "@/app/lib/api/merchant/payment-method";
-import Submit_request from "@/app/components/merchant/withdraw-request/Submit-request";
+import { getPaymentMethodList } from "@/lib/api/merchant/payment-method";
+import Submit_request from "@/components/merchant/withdraw-request/Submit-request";
 
 
 

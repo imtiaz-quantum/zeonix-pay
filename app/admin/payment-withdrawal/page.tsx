@@ -364,8 +364,8 @@ import {
 } from "@/components/ui/card";
 import { Suspense } from "react";
 import DepositTableSkeleton from "@/components/skeletons/DepositTableSkeleton";
-import { getWithdrawRequests } from "@/app/lib/api/merchant/withdraw-request";
-import Report from "@/app/components/merchant/withdraw-request/report";
+import { getWithdrawRequests } from "@/lib/api/merchant/withdraw-request";
+import Report from "@/components/merchant/withdraw-request/report";
 
 type PageProps = {
   searchParams: Promise<{

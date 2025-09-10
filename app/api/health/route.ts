@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/authOptions";
-import { getAccessToken } from "@/app/lib/getToken";
+import { authOptions } from "@/lib/authOptions";
+import { getAccessToken } from "@/lib/getToken";
 
 
 export const dynamic = "force-dynamic";

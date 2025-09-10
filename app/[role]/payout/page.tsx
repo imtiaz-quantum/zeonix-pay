@@ -405,7 +405,7 @@ import {
 } from "@/components/ui/card";
 import { Suspense } from "react";
 import DepositTableSkeleton from "@/components/skeletons/DepositTableSkeleton";
-import { getPayoutList } from "@/app/lib/api/merchant/payout";
+import { getPayoutList } from "@/lib/api/merchant/payout";
 import PayoutTable from "@/components/payout/PayoutTable";
 
 type PageProps = {

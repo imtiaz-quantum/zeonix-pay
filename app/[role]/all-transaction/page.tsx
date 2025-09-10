@@ -4,7 +4,7 @@ import {
 import { Suspense } from "react";
 import DepositTableSkeleton from "@/components/skeletons/DepositTableSkeleton";
 import LedgerTable from "@/components/ledger/LedgerTable";
-import { getWalletTransactions } from "@/app/lib/api/merchant/wallet";
+import { getWalletTransactions } from "@/lib/api/merchant/wallet";
 
 type PageProps = {
   searchParams: Promise<{

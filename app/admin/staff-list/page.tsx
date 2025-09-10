@@ -28,9 +28,9 @@ import {
 import { Suspense } from "react";
 import DepositTableSkeleton from "@/components/skeletons/DepositTableSkeleton";
 import DepositTable from "@/components/deposit/DepositTable";
-import { getUsersList } from "@/app/lib/api/admit/user-list";
+import { getUsersList } from "@/lib/api/admit/user-list";
 import UserListClient from "@/components/admin/UserListClient";
-import { getStaffList } from "@/app/lib/api/admit/staff-list";
+import { getStaffList } from "@/lib/api/admit/staff-list";
 import StaffListClient from "@/components/admin/StaffListClient";
 
 type PageProps = {
