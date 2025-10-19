@@ -467,7 +467,7 @@ export default function PaymentGatewayLanding() {
               <p className="mt-2 text-sm text-gray-600">Create an account in minutes. No credit card required.</p>
               <div className="flex gap-6 text-center justify-center mt-8">
                 <Link
-                  href="https://wa.me/message/22AX4J6BAZF5K1"
+                  href="https://wa.me/15793008485"
                   target="_blank"
                   className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2 shadow-sm transition hover:shadow-md hover:scale-105"
                 >
