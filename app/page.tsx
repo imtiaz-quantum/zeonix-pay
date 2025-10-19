@@ -472,7 +472,7 @@ export default function PaymentGatewayLanding() {
                   className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2 shadow-sm transition hover:shadow-md hover:scale-105"
                 >
                   <IoLogoWhatsapp className="text-green-500 text-2xl" />
-                  <span className="font-medium text-green-700">+8801761-850000</span>
+                  <span className="font-medium text-green-700">+15793008485</span>
                 </Link>
                 {/*                 <div
                   className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2 shadow-sm transition hover:shadow-md hover:scale-105 cursor-pointer"
